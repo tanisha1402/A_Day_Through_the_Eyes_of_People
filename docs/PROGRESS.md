@@ -1,29 +1,29 @@
 # Progress
 
-**Current phase:** 1 (Planning and technical foundation), awaiting user verification.
+**Current phase:** 2 (Core graphics utilities), awaiting user verification on Windows. Phase 1 environment check also still unconfirmed by the user.
 **Date:** 21/11/2026
 
-## Completed
-- Proposal analysed; architecture, world layout, module list and phase criteria written (docs/PROJECT_PLAN.md).
-- Skeleton `src/main.cpp`: 1280x720 window, centralized 16 ms timer with `dt`, 16:9 letterboxed viewport, gradient, glow, GL_TRIANGLES, GL_LINE_LOOP, bitmap text, pause and speed keys.
-- Code::Blocks project file and `.gitignore`.
-- Syntax check against stub headers passed.
+## Completed (headless-tested, not yet seen in a real window)
+- Modules: `Config.h`, `Animation` (central clock), `Utils` (colour maths, primitives, glow, vignette, letterbox, fade, text, scissor clip, viewport/mouse maths), `Environment` (cloud, tree, window, house, hill layer, star field, shooting star), `TestScreen` (2 pages), `main`.
+- Headless tests (`tests/`): 25 checks pass (maths, viewport, mouse conversion, scissor, clock) plus 14,400 simulated frames across 4 window sizes and both pages with no GL misuse: balanced Begin/End, matrix stack, scissor and blend state restored, no NaN vertices, colours in range. Max about 4,260 vertices per frame.
+- Compiled with `-Wall -Wextra` against stub headers: no warnings.
 
-## Not verified yet
-- Build and run on the user's Windows machine (real freeGLUT, real window). Not tested by the assistant.
+## Bug found and fixed by tests
+- Zero-size (minimised) window gave viewport height 0, which would divide by zero in mouse conversion.
 
-## Incomplete
-Phases 2-7.
+## Not verified
+- Build/link with real freeGLUT in Code::Blocks.
+- How it looks (colours, proportions, glow strength), and real FPS. The assistant cannot open a window.
 
-## Known bugs
-None known; nothing has been run with a real OpenGL window.
+## Known limitations
+- `drawPolygon` uses GL_POLYGON, so only convex shapes are correct.
+- Overlapping translucent cloud puffs would show seams if cloud alpha < 1; use opaque clouds.
+- Test screens are temporary; Phase 3 replaces them.
 
 ## Decisions
-- Logical 1280x720 coordinates; 50 px letterbox bars.
-- Districts left to right: Hilltop, Downtown, Riverside, Countryside.
-- Interiors drawn as cutaway panels in screen space.
-- `dt` from `GLUT_ELAPSED_TIME`, clamped.
-- Audio limited to optional music (PlaySound plays one WAV at a time).
+- Logical 1280x720 coordinates; 50 px letterbox; houses, trees and clouds are placed by bottom-centre or centre.
+- Clock functions take the time in ms so they can be tested without OpenGL.
+- Additive blending for glow, restored to normal alpha blending after each glow.
 
 ## Next task
-Phase 2, task 1: split `main.cpp` into modules and build the utility test screen.
+Phase 3, task 1: `TimeOfDay` module (hour keyframes, sky and light colours) and `Camera` module (pan, zoom, smooth moves).

@@ -38,6 +38,15 @@
 			<Add library="glu32" />
 			<Add library="winmm" />
 		</Linker>
+		<Unit filename="src/Config.h" />
+		<Unit filename="src/Animation.h" />
+		<Unit filename="src/Animation.cpp" />
+		<Unit filename="src/Utils.h" />
+		<Unit filename="src/Utils.cpp" />
+		<Unit filename="src/Environment.h" />
+		<Unit filename="src/Environment.cpp" />
+		<Unit filename="src/TestScreen.h" />
+		<Unit filename="src/TestScreen.cpp" />
 		<Unit filename="src/main.cpp" />
 	</Project>
 </CodeBlocks_project_file>

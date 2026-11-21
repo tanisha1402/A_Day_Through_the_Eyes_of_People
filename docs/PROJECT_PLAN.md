@@ -65,8 +65,15 @@ Beginner-friendly rule: plain functions and structs, no inheritance or templates
 Acceptance: plan approved; skeleton builds and runs on the user's machine with the expected window.
 
 ### Phase 2: Environment and core graphics utilities
-Tasks: split into modules; shapes, gradients, glow, outlines; cloud, tree, house; coordinate and letterbox handling; test screen showing every utility.
-Acceptance: test screen displays every utility correctly; stable ~60 fps; clean build in Code::Blocks with no warnings.
+- [x] Modules split: Config, Animation (central clock), Utils, Environment, TestScreen, main (headless-tested)
+- [x] Primitives: rect, outline, gradient V/H, triangle, polygon, circle, ellipse, arc band, line (headless-tested)
+- [x] Glow (additive), translucency, vignette, letterbox, fade overlay (headless-tested; look unverified)
+- [x] drawCloud, drawTree, drawWindow, drawHouse, drawHillLayer, drawStarField, drawShootingStar (headless-tested; look unverified)
+- [x] Coordinate system: logical 1280x720, letterboxed viewport, window-to-logical mouse maths, scissor clipping helpers (unit-tested)
+- [x] Central clock with dt, speed, pause, FPS (unit-tested)
+- [ ] User builds in Code::Blocks and checks both test pages visually on Windows
+- [ ] Visual polish pass on object look (colours, proportions) after user feedback
+Acceptance: both test pages display correctly; ~60 fps; clean build with no warnings in Code::Blocks.
 Depends on: Phase 1.
 
 ### Phase 3: World, characters, Scenes 1-3
