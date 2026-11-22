@@ -136,11 +136,23 @@ void drawGlow(float cx, float cy, float radius, Color c, int layers) {
     // so overlapping glows brighten like real light. The big faint circles are
     // drawn first; every smaller circle adds a bit more, giving a soft falloff.
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    // big glows need more layers, otherwise the rings become visible (8-bit colour banding)
+    int n = layers;
+    if (n < (int)(radius / 5.0f)) n = (int)(radius / 5.0f);
+    if (n > 56) n = 56;
+    layers = n;
     for (int i = layers; i >= 1; --i) {
         float t = (float)i / layers;
         drawCircle(cx, cy, radius * t, withAlpha(c, c.a / layers), 32);
     }
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);   // restore normal blending
+}
+
+void drawSoftEllipse(float cx, float cy, float rx, float ry, Color c, int layers) {
+    for (int i = layers; i >= 1; --i) {                     // shrinking translucent ellipses = soft edge
+        float t = (float)i / layers;
+        drawEllipse(cx, cy, rx * t, ry * t, withAlpha(c, c.a / layers), 32);
+    }
 }
 
 void drawVignette(float strength) {

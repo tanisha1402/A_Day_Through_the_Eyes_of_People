@@ -15,3 +15,11 @@ void drawHillLayer(float baseY, float amplitude, float wavelength, float scrollX
 void drawStarField(float x, float y, float w, float h, int count, float time, float alpha);
 // Streak with a fading tail. tail = head - (tailDX, tailDY).
 void drawShootingStar(float headX, float headY, float tailDX, float tailDY, float alpha);
+
+// World-space hill silhouette from x0 to x1, filled down to bottomY (used with the camera).
+void drawHillLayerRange(float x0, float x1, float baseY, float amplitude, float wavelength,
+                        Color top, Color bottom, float bottomY);
+// Sun shafts: soft additive triangles fanning out from (sx, sy) toward the lower right.
+void drawLightRays(float sx, float sy, float time, float strength, Color c);
+// Street lamp; the bulb glows when lit. (x, y) = bottom-centre.
+void drawLamp(float x, float y, float scale, bool lit);

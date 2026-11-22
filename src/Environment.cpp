@@ -38,7 +38,7 @@ void drawTree(float x, float y, float s, Color leaf) {
 void drawWindow(float x, float y, float w, float h, bool lit) {
     Color frame = rgb(0.10f, 0.08f, 0.10f);
     if (lit) {
-        drawGlow(x + w / 2, y + h / 2, w * 1.4f, rgba(1.0f, 0.78f, 0.38f, 0.6f), 6);
+        drawGlow(x + w / 2, y + h / 2, w * 1.5f, rgba(1.0f, 0.78f, 0.38f, 0.55f), 12);
         drawRect(x, y, w, h, rgb(1.0f, 0.88f, 0.52f));
     } else {
         drawRect(x, y, w, h, rgb(0.13f, 0.16f, 0.27f));
@@ -104,4 +104,51 @@ void drawShootingStar(float hx, float hy, float tdx, float tdy, float alpha) {
         glColor4f(1, 1, 1, alpha);  glVertex2f(hx, hy);               // bright head
     glEnd();
     drawGlow(hx, hy, 14, rgba(1, 1, 1, alpha * 0.8f), 4);
+}
+
+void drawHillLayerRange(float x0, float x1, float baseY, float amp, float wavelen,
+                        Color top, Color bottom, float bottomY) {
+    const float step = 20.0f;
+    glBegin(GL_QUADS);
+        for (float x = x0; x < x1; x += step) {
+            float ya = hillHeight(x, baseY, amp, wavelen, 0);
+            float yb = hillHeight(x + step, baseY, amp, wavelen, 0);
+            glColor4f(bottom.r, bottom.g, bottom.b, bottom.a); glVertex2f(x, bottomY); glVertex2f(x + step, bottomY);
+            glColor4f(top.r, top.g, top.b, top.a);             glVertex2f(x + step, yb); glVertex2f(x, ya);
+        }
+    glEnd();
+}
+
+void drawLightRays(float sx, float sy, float time, float strength, Color c) {
+    if (strength <= 0.0f) return;
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);                          // additive: light adds up
+    const int RAYS = 9;
+    glBegin(GL_TRIANGLES);
+        for (int i = 0; i < RAYS; ++i) {
+            float a0 = -1.30f + i * 0.13f;                       // angle of the ray (radians, pointing right/down)
+            float spread = 0.030f + 0.012f * hash01(i * 7 + 3);
+            float shimmer = 0.65f + 0.35f * std::sin(time * 0.8f + i * 1.7f);
+            float a = strength * 0.17f * shimmer;
+            float len = 2000.0f;
+            glColor4f(c.r, c.g, c.b, a);
+            glVertex2f(sx, sy);
+            glColor4f(c.r, c.g, c.b, 0.0f);                      // fades to nothing far from the sun
+            glVertex2f(sx + len * std::cos(a0 - spread), sy + len * std::sin(a0 - spread));
+            glVertex2f(sx + len * std::cos(a0 + spread), sy + len * std::sin(a0 + spread));
+        }
+    glEnd();
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+void drawLamp(float x, float y, float s, bool lit) {
+    Color metal = rgb(0.12f, 0.13f, 0.17f);
+    drawRect(x - 2.5f * s, y, 5 * s, 78 * s, metal);
+    drawRect(x - 7 * s, y, 14 * s, 5 * s, metal);
+    drawTriangle(x - 10 * s, y + 80 * s, x + 10 * s, y + 80 * s, x, y + 92 * s, metal);
+    if (lit) {
+        drawGlow(x, y + 74 * s, 46 * s, rgba(1.0f, 0.8f, 0.45f, 0.65f), 12);
+        drawCircle(x, y + 74 * s, 5 * s, rgb(1.0f, 0.92f, 0.65f));
+    } else {
+        drawCircle(x, y + 74 * s, 5 * s, rgb(0.55f, 0.55f, 0.5f));
+    }
 }

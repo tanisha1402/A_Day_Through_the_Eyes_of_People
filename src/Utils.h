@@ -82,7 +82,8 @@ void drawLine(float x1, float y1, float x2, float y2, Color c, float width = 1.0
 
 // ------------------------------------------------------------ light / fx ----
 // Soft glow: stacked translucent circles drawn with additive blending.
-void drawGlow(float cx, float cy, float radius, Color c, int layers = 8);
+void drawGlow(float cx, float cy, float radius, Color c, int layers = 16);
+void drawSoftEllipse(float cx, float cy, float rx, float ry, Color c, int layers = 10);   // mist, soft shadows
 void drawVignette(float strength);          // darkened screen edges
 void drawLetterbox();                       // black cinematic bars
 void drawFade(Color c, float alpha);        // full-screen colour overlay (scene fades)

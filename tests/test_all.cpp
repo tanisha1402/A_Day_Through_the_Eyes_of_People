@@ -2,7 +2,10 @@
 #include "../src/Utils.h"
 #include "../src/Animation.h"
 #include "../src/Environment.h"
-#include "../src/TestScreen.h"
+#include "TestScreen.h"
+#include "../src/TimeOfDay.h"
+#include "../src/Camera.h"
+#include "../src/Scenes.h"
 #include "mock_gl.h"
 #include <cstdio>
 #include <cmath>
@@ -86,10 +89,86 @@ static void testHeadless() {
     CHECK(gMock.maxVertices < 60000, "vertex count per frame stays modest");
 }
 
+
+static void testTimeOfDay() {
+    // 1. the sky never jumps: tiny hour steps give tiny colour changes, over the whole looping day
+    float maxStep = 0; SkyState prev = skyAtHour(4.5f);
+    for (float h = 4.505f; h <= 28.5f; h += 0.005f) {
+        SkyState s = skyAtHour(h);
+        float d = std::fabs(s.top.r - prev.top.r) + std::fabs(s.top.g - prev.top.g) + std::fabs(s.top.b - prev.top.b)
+                + std::fabs(s.bottom.r - prev.bottom.r) + std::fabs(s.bottom.g - prev.bottom.g) + std::fabs(s.bottom.b - prev.bottom.b)
+                + std::fabs(s.light.r - prev.light.r) + std::fabs(s.darkness - prev.darkness);
+        if (d > maxStep) maxStep = d;
+        prev = s;
+    }
+    std::printf("  largest sky change per 0.005 h step: %.4f\n", maxStep);
+    CHECK(maxStep < 0.03f, "sky colours blend smoothly through the whole day");
+    SkyState a = skyAtHour(4.5f), b = skyAtHour(28.5f), c = skyAtHour(3.0f), d = skyAtHour(27.0f);
+    CHECK(near(a.top.r, b.top.r, 0.001f) && near(a.bottom.g, b.bottom.g, 0.001f), "loop closes: 28:30 sky == 4:30 sky");
+    CHECK(near(c.top.b, d.top.b, 0.001f), "hours below 4:30 wrap to the next day");
+    SkyState noon = skyAtHour(12.0f), night = skyAtHour(23.5f), dawn = skyAtHour(4.5f);
+    CHECK(noon.sunUp && !noon.moonUp && noon.darkness < 0.05f && noon.starAlpha == 0, "noon: sun up, no moon, no stars");
+    CHECK(!night.sunUp && night.moonUp && night.darkness > 0.95f && night.starAlpha > 0.9f, "11:30 PM: moon up, stars out");
+    CHECK(dawn.moonUp && !dawn.sunUp, "4:30 AM: moon still up");
+    CHECK(skyAtHour(12.0f).sunY > skyAtHour(7.0f).sunY && skyAtHour(12.0f).sunY > skyAtHour(17.0f).sunY, "sun is highest at noon");
+    int lit4 = 0, lit12 = 0, lit21 = 0;
+    for (int id = 0; id < 100; ++id) { lit4 += windowLit(id, 4.5f); lit12 += windowLit(id, 12.0f); lit21 += windowLit(id, 21.0f); }
+    std::printf("  lit windows out of 100:  4:30 -> %d   12:00 -> %d   21:00 -> %d\n", lit4, lit12, lit21);
+    CHECK(lit4 > 5 && lit4 < 30 && lit12 == 0 && lit21 > 50, "window schedule: few at dawn, none at noon, most in the evening");
+}
+
+static void testCameraAndScenes() {
+    Camera p = makeCamera(100, 200, 1.0f), q = makeCamera(500, 400, 2.0f);
+    Camera m0 = cameraBlend(p, q, 0), m1 = cameraBlend(p, q, 1), mh = cameraBlend(p, q, 0.5f);
+    CHECK(near(m0.x, 100) && near(m1.x, 500) && near(m1.zoom, 2.0f), "camera blend endpoints");
+    CHECK(near(mh.x, 300) && near(mh.y, 300) && near(mh.zoom, 1.5f), "camera blend midpoint (smoothstep(0.5) = 0.5)");
+
+    scenesInit();
+    CHECK(sceneIndex() == 0 && sceneTime() == 0, "scenes start at chapter 1");
+    for (int i = 0; i < 899; ++i) scenesUpdate(1.0f / 60.0f);     // 14.98 s
+    CHECK(sceneIndex() == 0, "chapter 1 lasts 15 s");
+    for (int i = 0; i < 3; ++i) scenesUpdate(1.0f / 60.0f);
+    CHECK(sceneIndex() == 1 && sceneTime() < 0.1f, "chapter 2 starts after 15 s");
+    for (int i = 0; i < 60 * 30; ++i) scenesUpdate(1.0f / 60.0f); // 30 more seconds: 2 -> 3 -> wrap to 1
+    CHECK(sceneIndex() == 0, "implemented chapters loop back to chapter 1");
+    scenesNext(); CHECK(sceneIndex() == 1 && sceneTime() == 0, "N goes to the next chapter");
+    scenesPrev(); scenesPrev(); CHECK(sceneIndex() == 2, "P wraps backwards");
+}
+
+static void testSceneRendering() {
+    const int sizes[][2] = { {1280, 720}, {1920, 1080}, {1000, 1000} };
+    for (int s = 0; s < 3; ++s) {
+        utilsOnResize(sizes[s][0], sizes[s][1]);
+        clockStart(0); scenesInit();
+        for (int frame = 1; frame <= 60 * 46; ++frame) {          // 46 s: all 3 chapters + the loop wrap
+            clockTick(frame * 16);
+            scenesUpdate(gClock.dt);
+            gMock.vertices = 0;
+            scenesDraw();
+            mockFrameCheck("scene frame");
+        }
+    }
+    // pause + speed extremes
+    clockStart(0); scenesInit();
+    for (int frame = 1; frame <= 600; ++frame) {
+        if (frame == 100) clockTogglePause();
+        if (frame == 200) clockTogglePause();
+        if (frame == 250) for (int i = 0; i < 10; ++i) clockSpeedUp();
+        clockTick(frame * 16); scenesUpdate(gClock.dt); scenesDraw(); mockFrameCheck("speed frame");
+    }
+    CHECK(gMock.errors == 0, "all chapters render with no GL misuse (3 window sizes, pause, max speed)");
+    if (gMock.errors) std::printf("  first error: %s\n", gMock.firstError);
+    std::printf("  max vertices per frame so far: %ld\n", gMock.maxVertices);
+    CHECK(gMock.maxVertices < 150000, "vertex count per frame stays within budget");
+}
+
 int main() {
     testMath();
     testClock();
     testHeadless();
+    testTimeOfDay();
+    testCameraAndScenes();
+    testSceneRendering();
     std::printf("\n%d checks passed, %d failed\n", gPass, gFail);
     return gFail ? 1 : 0;
 }

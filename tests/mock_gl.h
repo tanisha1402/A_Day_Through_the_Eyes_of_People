@@ -10,3 +10,7 @@ struct MockStats {
 };
 extern MockStats gMock;
 void mockFrameCheck(const char* where);   // verifies state is clean at the end of a frame
+
+// Optional software rasterizer so frames can be saved as images (tests/render.cpp).
+void mockInitRaster(int width, int height);                  // enables rasterizing
+void mockWritePPM(const char* path, int downscale);          // box-filter downscale by k

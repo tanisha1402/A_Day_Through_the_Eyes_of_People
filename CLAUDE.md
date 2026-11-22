@@ -12,8 +12,11 @@ C++11, OpenGL fixed pipeline, freeGLUT, Code::Blocks, MinGW, Windows. No texture
 - Named constants in `Config.h`, no unexplained magic numbers.
 - Declare GL constants missing from MinGW's gl.h.
 
+## Architecture (src/)
+Config, Animation (central clock), Utils (primitives, glow, clip, viewport maths), Environment (reusable scenery), TimeOfDay (sky keyframes, window schedule), Camera (pan/zoom/parallax), Characters (drawPerson, drawCat), World (town + landmarks), Scenes (chapter manager and scripts), main. Characters/trains move by waypoint tracks that are pure functions of chapter time.
+
 ## Workflow
 Seven phases, one at a time (see docs/PROJECT_PLAN.md). Each phase must compile. Report tasks, files, tests with real results, bugs, next task. Mark tasks complete only after the user has run them. ZIP per phase: Project_Phase_01.zip ... Project_Phase_07_Final.zip, excluding bin/, obj/ and secrets. Update docs/PROGRESS.md after significant work.
 
 ## Limitations
-The assistant cannot open a Windows OpenGL window; visual verification is done by the user.
+The assistant cannot open a Windows OpenGL window. tests/ has a fake GL with a software rasterizer (tests/render_scene.cpp, ppm2png.py) used to review frames as images; the user still verifies on real hardware.

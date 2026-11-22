@@ -15,12 +15,14 @@ One panorama, 5200 x 1100 world units (1 unit = 1 pixel at zoom 1). Camera shows
 
 | District | x range | Contents |
 |---|---|---|
-| Hilltop | 0 - 1300 | Aoi's mansion on the high ground, garden, gate |
-| Downtown | 1300 - 2900 | Bakery, offices, school, railway crossing and track, station |
-| Riverside | 2900 - 4000 | River, fishing dock, Ren's hut, small wooden houses |
-| Countryside | 4000 - 5200 | Rice fields, Granny Sato's farmhouse and gate |
+| Hilltop | 0 - 1300 | Aoi's mansion on the high ground, gate, path down the hill |
+| Riverside | 1300 - 2500 | River at the foot of the hill, dock, boat, Ren's hut, small houses |
+| Downtown | 2500 - 4000 | Bakery, offices, school with clock, railway track and crossing |
+| Countryside | 4000 - 5200 | Rice paddies, Granny Sato's farmhouse and gate |
 
-Layout is adjustable in Phase 3 if composition requires it. Interiors (Aoi's room, Ren's hut, classroom, office, piano room) are drawn as separate cutaway panels in local screen space, not inside the panorama.
+(Changed in Phase 3 from Hilltop / Downtown / Riverside / Countryside: the river now sits at the foot of the hill so Scene 2's pan down the hill reaches Ren's hut, and Scene 7's cat walk from the riverside up to the mansion is short and natural.)
+
+Layout is adjustable in Phase 3 if composition requires it. Interiors: Aoi's room and Ren's hut are in-world cutaways (open front walls) so the camera can pan and zoom into them. The classroom, office and piano room of Scene 4 are separate split-screen panels (Phase 4).
 
 ## 3. Modules (files under `src/`)
 | File | Responsibility |
@@ -77,8 +79,14 @@ Acceptance: both test pages display correctly; ~60 fps; clean build with no warn
 Depends on: Phase 1.
 
 ### Phase 3: World, characters, Scenes 1-3
-Tasks: town panorama with four districts; `drawPerson` with walk and idle; `drawCat`; `TimeOfDay`; `Camera`; Scenes 1, 2, 3 (Scene 2 first as the visual benchmark); sunrise, river mist, crossing, train.
-Acceptance: scenes 1-3 play and transition smoothly; characters look distinct; walk cycle works; train and crossing lights sync.
+- [x] TimeOfDay: 11 hour keyframes, sky/light blending, sun and moon arcs, window schedule (unit-tested)
+- [x] Camera: pan, zoom, eased moves, parallax layers (unit-tested)
+- [x] Town panorama with four districts, terrain, river, hut, mansion with room cutaway, bakery, offices, school, farmhouse, track, train, crossing (rendered and reviewed in preview images)
+- [x] drawPerson: six character styles, walk cycle, idle breathing, blinking, watch-check arm; drawCat: walking and sitting (reviewed in preview images)
+- [x] Scene manager: chapter clock, fade transitions, captions, corner clock; Scenes 1, 2, 3 scripted (headless-tested for timing and GL correctness)
+- [ ] User builds and watches chapters 1-3 on Windows and confirms visuals, timing and FPS
+- [ ] Particle pool: deferred to Phase 4 (arrives with rain). Chapters 1-3 smoke, steam and mist use simple formulas.
+Acceptance: chapters 1-3 play and transition smoothly; characters distinct; walk cycle correct; train and crossing lights in sync.
 Depends on: Phase 2.
 
 ### Phase 4: Split-screen Scenes 4-6

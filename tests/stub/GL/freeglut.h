@@ -47,5 +47,5 @@ void glutInitWindowSize(int,int); void glutInitWindowPosition(int,int); int glut
 void glutDisplayFunc(void(*)()); void glutReshapeFunc(void(*)(int,int)); void glutKeyboardFunc(void(*)(unsigned char,int,int));
 void glutSpecialFunc(void(*)(int,int,int)); void glutTimerFunc(unsigned,void(*)(int),int);
 void glutMainLoop(); void glutSwapBuffers(); void glutPostRedisplay(); int glutGet(GLenum);
-void glutLeaveMainLoop(); void glutBitmapString(void*,const unsigned char*);
+void glutLeaveMainLoop(); void glutBitmapString(void*,const unsigned char*); int glutBitmapLength(void*,const unsigned char*);
 }

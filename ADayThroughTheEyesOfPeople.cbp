@@ -45,8 +45,16 @@
 		<Unit filename="src/Utils.cpp" />
 		<Unit filename="src/Environment.h" />
 		<Unit filename="src/Environment.cpp" />
-		<Unit filename="src/TestScreen.h" />
-		<Unit filename="src/TestScreen.cpp" />
+		<Unit filename="src/TimeOfDay.h" />
+		<Unit filename="src/TimeOfDay.cpp" />
+		<Unit filename="src/Camera.h" />
+		<Unit filename="src/Camera.cpp" />
+		<Unit filename="src/Characters.h" />
+		<Unit filename="src/Characters.cpp" />
+		<Unit filename="src/World.h" />
+		<Unit filename="src/World.cpp" />
+		<Unit filename="src/Scenes.h" />
+		<Unit filename="src/Scenes.cpp" />
 		<Unit filename="src/main.cpp" />
 	</Project>
 </CodeBlocks_project_file>
