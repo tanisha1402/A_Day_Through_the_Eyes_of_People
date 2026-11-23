@@ -59,6 +59,13 @@ PersonStyle makeNeighbor() {
     return s;
 }
 
+PersonStyle makeMother() {
+    PersonStyle s = baseStyle();
+    s.hair = rgb(0.10f, 0.08f, 0.09f); s.top = rgb(0.22f, 0.30f, 0.40f); s.bottom = rgb(0.26f, 0.26f, 0.32f);
+    s.accent = rgb(0.9f, 0.9f, 0.9f); s.hairStyle = HAIR_BUN; s.skirt = true; s.prop = PROP_BAG; s.height = 0.98f; s.hunch = 7; s.bodyWidth = 25;
+    return s;
+}
+
 // ---------------------------------------------------------------- helpers ----
 static Color ol(Color c) { return darken(c, 0.38f); }            // outline colour from a fill colour
 

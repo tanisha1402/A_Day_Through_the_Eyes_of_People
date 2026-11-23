@@ -9,6 +9,7 @@
 #include "../src/Viewports.h"
 #include "../src/Particles.h"
 #include "../src/Panels.h"
+#include "../src/Fireworks.h"
 #include "mock_gl.h"
 #include <cstdio>
 #include <cmath>
@@ -133,10 +134,10 @@ static void testCameraAndScenes() {
     CHECK(sceneIndex() == 0, "chapter 1 lasts 15 s");
     for (int i = 0; i < 3; ++i) scenesUpdate(1.0f / 60.0f);
     CHECK(sceneIndex() == 1 && sceneTime() < 0.1f, "chapter 2 starts after 15 s");
-    for (int i = 0; i < 60 * 75; ++i) scenesUpdate(1.0f / 60.0f); // 75 more seconds: chapters 2..6, then wrap
-    CHECK(sceneIndex() == 0, "six implemented chapters (90 s) loop back to chapter 1");
+    for (int i = 0; i < 60 * 135; ++i) scenesUpdate(1.0f / 60.0f); // 135 more seconds: chapters 2..10, then wrap
+    CHECK(sceneIndex() == 0, "ten chapters (150 s) loop back to chapter 1");
     scenesNext(); CHECK(sceneIndex() == 1 && sceneTime() == 0, "N goes to the next chapter");
-    scenesPrev(); scenesPrev(); CHECK(sceneIndex() == 5, "P wraps backwards");
+    scenesPrev(); scenesPrev(); CHECK(sceneIndex() == 9, "P wraps backwards (chapter 1 -> chapter 10)");
 }
 
 static void testPanelsAndParticles() {
@@ -197,32 +198,73 @@ static void testPanelsAndParticles() {
     CHECK(lightningOk && peak > 0.95f && quiet == 0, "lightning stays in 0..1, flashes, and is dark between flashes");
 }
 
+static void checkViewportRestored() {
+    int vx, vy, vw, vh; mockGetViewport(vx, vy, vw, vh); Viewport v = utilsGetViewport();
+    if (vx != v.x || vy != v.y || vw != v.w || vh != v.h) { ++gMock.errors; std::snprintf(gMock.firstError, sizeof gMock.firstError, "viewport not restored after panels"); }
+}
+
+static void testFireworksAndStory() {
+    fireworksReset();
+    for (int i = 0; i < 300; ++i) fireworksLaunch(100 + (i % 10) * 100.0f, 400.0f, rgb(1, 0.5f, 0.2f));   // flood the launcher
+    int peak = 0; float maxFlash = 0; bool ok = true;
+    for (int f = 0; f < 1200; ++f) {
+        if (f % 5 == 0) fireworksLaunch(200 + (f % 7) * 120.0f, 450.0f, rgb(0.5f, 0.8f, 1.0f));
+        fireworksUpdate(1.0f / 60.0f);
+        peak = std::max(peak, fireworksAlive()); maxFlash = std::max(maxFlash, fireworksFlash());
+        if (fireworksFlash() < 0 || fireworksFlash() > 1) ok = false;
+    }
+    std::printf("  fireworks: peak live particles %d (cap 366), peak sky flash %.2f\n", peak, maxFlash);
+    CHECK(peak <= 6 + 360 && ok && maxFlash > 0.5f, "fireworks respect their caps and the flash stays in 0..1");
+    for (int f = 0; f < 600; ++f) fireworksUpdate(1.0f / 60.0f);
+    CHECK(fireworksAlive() == 0, "fireworks burn out completely");
+
+    // story clock: the sky at the end of a chapter should match the start of the next (fades hide the two deliberate jumps)
+    float worst = 0; int worstAt = -1;
+    for (int i = 0; i < 9; ++i) {
+        SkyState a = skyAtHour(sceneHourAt(i, 15.0f)), b = skyAtHour(sceneHourAt(i + 1, 0.0f));
+        float d = std::fabs(a.top.r - b.top.r) + std::fabs(a.top.g - b.top.g) + std::fabs(a.top.b - b.top.b) + std::fabs(a.bottom.r - b.bottom.r) + std::fabs(a.bottom.g - b.bottom.g) + std::fabs(a.bottom.b - b.bottom.b) + std::fabs(a.darkness - b.darkness);
+        std::printf("  chapter %d -> %d sky difference %.3f\n", i + 1, i + 2, d);
+        if (d > worst) { worst = d; worstAt = i; }
+    }
+    CHECK(worst < 0.35f, "sky is continuous across chapter boundaries (4->5 is a time skip with near-identical day sky)");
+    (void)worstAt;
+    SkyState end = skyAtHour(sceneHourAt(9, 15.0f)), start = skyAtHour(sceneHourAt(0, 0.0f));
+    CHECK(end.darkness > 0.8f && start.darkness > 0.8f, "loop: the last chapter ends in deep night, chapter 1 starts in pre-dawn darkness (hidden by the fade)");
+}
+
 static void testSceneRendering() {
-    const int sizes[][2] = { {1280, 720}, {1920, 1080}, {1000, 1000} };
+    // 1. the whole film at 1280x720: all ten chapters + the wrap
+    utilsOnResize(1280, 720);
+    clockStart(0); scenesInit();
+    long frames = 0;
+    for (int frame = 1; frame <= 60 * 152; ++frame) {
+        clockTick(frame * 16); scenesUpdate(gClock.dt);
+        gMock.vertices = 0; scenesDraw(); mockFrameCheck("scene frame"); checkViewportRestored(); ++frames;
+    }
+    // 2. every chapter at awkward window sizes
+    const int sizes[][2] = { {1920, 1080}, {1000, 1000}, {800, 300} };
     for (int s = 0; s < 3; ++s) {
         utilsOnResize(sizes[s][0], sizes[s][1]);
-        clockStart(0); scenesInit();
-        for (int frame = 1; frame <= 60 * 92; ++frame) {          // 92 s: all 6 chapters + the loop wrap
-            clockTick(frame * 16);
-            scenesUpdate(gClock.dt);
-            gMock.vertices = 0;
-            scenesDraw();
-            mockFrameCheck("scene frame");
-            { int vx, vy, vw, vh; mockGetViewport(vx, vy, vw, vh); Viewport v = utilsGetViewport();
-              if (vx != v.x || vy != v.y || vw != v.w || vh != v.h) { ++gMock.errors; std::snprintf(gMock.firstError, sizeof gMock.firstError, "viewport not restored after panels"); } }
+        for (int ch = 0; ch < 10; ++ch) {
+            clockStart(0); scenesGoto(ch, 0);
+            for (int frame = 1; frame <= 60 * 5; ++frame) {
+                clockTick(frame * 16); scenesUpdate(gClock.dt);
+                gMock.vertices = 0; scenesDraw(); mockFrameCheck("scene frame"); checkViewportRestored(); ++frames;
+            }
         }
     }
-    // pause + speed extremes
-    clockStart(0); scenesInit();
+    // 3. pause and speed extremes
+    utilsOnResize(1280, 720); clockStart(0); scenesGoto(8, 0);
     for (int frame = 1; frame <= 600; ++frame) {
         if (frame == 100) clockTogglePause();
         if (frame == 200) clockTogglePause();
         if (frame == 250) for (int i = 0; i < 10; ++i) clockSpeedUp();
-        clockTick(frame * 16); scenesUpdate(gClock.dt); scenesDraw(); mockFrameCheck("speed frame");
+        clockTick(frame * 16); scenesUpdate(gClock.dt); scenesDraw(); mockFrameCheck("speed frame"); checkViewportRestored(); ++frames;
     }
-    CHECK(gMock.errors == 0, "all chapters render with no GL misuse (3 window sizes, pause, max speed)");
+    std::printf("  rendered %ld frames\n", frames);
+    CHECK(gMock.errors == 0, "all ten chapters render with no GL misuse (4 window sizes, pause, max speed)");
     if (gMock.errors) std::printf("  first error: %s\n", gMock.firstError);
-    std::printf("  max vertices per frame so far: %ld\n", gMock.maxVertices);
+    std::printf("  max vertices per frame overall: %ld\n", gMock.maxVertices);
     CHECK(gMock.maxVertices < 150000, "vertex count per frame stays within budget");
 }
 
@@ -233,6 +275,7 @@ int main() {
     testTimeOfDay();
     testCameraAndScenes();
     testPanelsAndParticles();
+    testFireworksAndStory();
     testSceneRendering();
     std::printf("\n%d checks passed, %d failed\n", gPass, gFail);
     return gFail ? 1 : 0;

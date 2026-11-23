@@ -454,3 +454,142 @@ void drawRenHutPanel(float w, float h, float t, float flash) {
     drawPerson(w * 0.60f, 56, 1.35f, r, p);
     flashOverlay(w, h, flash * 0.35f);
 }
+
+// -------------------------------------------------------------- scene 8 ----
+static void drawCrow(float x, float y, float s, float phase) {
+    float flap = std::sin(phase) * 9.0f * s;
+    Color ink = C(0.06f, 0.05f, 0.08f);
+    drawEllipse(x, y, 7 * s, 3.2f * s, ink, 12); drawCircle(x + 7 * s, y + 1.5f * s, 2.8f * s, ink, 10);
+    drawTriangle(x + 9 * s, y + 1.5f * s, x + 13 * s, y + 0.5f * s, x + 9 * s, y - 0.5f * s, ink);                 // beak
+    drawLine(x, y + 1, x - 13 * s, y + 4 * s + flap, ink, 2.2f); drawLine(x - 13 * s, y + 4 * s + flap, x - 24 * s, y + flap * 0.4f, ink, 1.8f);
+    drawLine(x, y + 1, x + 4 * s, y + 8 * s + flap, ink, 2.2f);
+}
+// One flock, one screen position: each panel draws the same crows at (x - panelX), so they fly across the borders.
+static void drawCrowFlock(float panelX, float flockX, float t, float yBase) {
+    for (int i = 0; i < 7; ++i) {
+        float cx = flockX - panelX - (i % 4) * 46.0f - (i / 4) * 30.0f + hz(i + 50) * 24.0f;
+        float cy = yBase + (i % 3) * 26.0f - (i / 3) * 12.0f + std::sin(t * 0.9f + i) * 10.0f;
+        drawCrow(cx, cy, 1.1f + hz(i) * 0.4f, t * 9.0f + i * 1.3f);
+    }
+}
+
+static void goldenSky(float w, float h, float horizon) {
+    drawGradientRect(0, 0, w, h, gSky.bottom, gSky.top);
+    drawGlow(w * 0.15f, horizon + 30, 260, rgba(1.0f, 0.62f, 0.25f, 0.7f), 20);                                      // low sun
+}
+
+void drawRenReturnPanel(float w, float h, float t, float panelX, float flockX) {
+    drawGradientRect(0, 0, w, h, C(0.22f, 0.15f, 0.11f), C(0.40f, 0.28f, 0.19f));
+    for (int i = 1; i < 14; ++i) drawLine(i * w / 14, 52, i * w / 14, h, C(0.20f, 0.13f, 0.09f), 1.2f);
+    drawGradientRect(0, 0, w, 52, C(0.14f, 0.10f, 0.07f), C(0.26f, 0.18f, 0.12f));
+    const float dx = w - 170;                                                           // the open doorway, with the sunset outside
+    panelClipBegin(dx, 52, 170, 330);
+    goldenSky(w, 380, 140);
+    drawHillLayerRange(dx, w, 100, 24, 210, C(0.28f, 0.22f, 0.30f), C(0.22f, 0.17f, 0.25f), 52);
+    drawCrowFlock(panelX, flockX, t, 250);
+    panelClipEnd();
+    drawRect(dx - 8, 52, 8, 340, C(0.28f, 0.18f, 0.11f)); drawRect(dx - 8, 382, 178, 10, C(0.28f, 0.18f, 0.11f));
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);                                                  // sunset light spilling across the floor
+    glBegin(GL_QUADS);
+        glColor4f(1.0f, 0.6f, 0.25f, 0.30f); glVertex2f(dx, 130); glVertex2f(dx, 52);
+        glColor4f(1.0f, 0.6f, 0.25f, 0.0f);  glVertex2f(40, 30); glVertex2f(130, 150);
+    glEnd();
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    drawRect(24, 250, 110, 6, C(0.30f, 0.2f, 0.13f));                                   // shelf: the photo, the tin
+    drawRect(40, 256, 30, 38, C(0.92f, 0.85f, 0.70f)); drawRectOutline(40, 256, 30, 38, C(0.3f, 0.2f, 0.13f), 2.0f);
+    drawCircle(55, 279, 7, C(0.35f, 0.25f, 0.2f)); drawTriangle(44, 258, 66, 258, 55, 270, C(0.5f, 0.4f, 0.5f));
+    drawRect(88, 256, 20, 22, C(0.75f, 0.6f, 0.4f));
+    drawRect(14, 52, 52, 56, C(0.10f, 0.08f, 0.08f));                                   // stove, cold and dark
+    float lamp = smoothstep01((t - 5.2f) / 1.2f);                                       // the lamp comes on only when Ren gets home
+    drawLine(w * 0.40f, h, w * 0.40f, h - 90, C(0.15f, 0.1f, 0.08f), 1.5f);
+    drawGlow(w * 0.40f, h - 100, 150, rgba(1.0f, 0.78f, 0.42f, 0.6f * lamp), 16);
+    drawCircle(w * 0.40f, h - 100, 7, lerpColor(C(0.45f, 0.4f, 0.35f), C(1.0f, 0.92f, 0.65f), lamp));
+    float tx = 96;                                                                       // table with ONE cup, gone cold
+    drawRect(tx, 120, 150, 8, C(0.38f, 0.26f, 0.17f)); drawRect(tx + 10, 52, 7, 68, C(0.3f, 0.2f, 0.13f)); drawRect(tx + 132, 52, 7, 68, C(0.3f, 0.2f, 0.13f));
+    drawRect(tx + 62, 128, 16, 14, C(0.95f, 0.95f, 0.92f)); drawRectOutline(tx + 62, 128, 16, 14, C(0.4f, 0.4f, 0.45f), 1.3f);
+    drawRect(tx + 78, 131, 5, 7, C(0.95f, 0.95f, 0.92f));
+    PersonStyle r = makeRen(); PersonPose p = makePose(-1, t);
+    float u = clamp01((t - 1.0f) / 4.0f), x = lerp(w + 60, w * 0.60f, u);
+    p.walkAmount = (t > 1.0f && t < 5.0f) ? 1.0f : 0.0f; p.walkPhase = (w + 60 - x) * 0.115f / 1.6f;
+    r.hunch = (t > 6.5f) ? 19.0f : 11.0f;
+    drawPerson(x, 58, 1.6f, r, p);
+}
+
+void drawHanaWaitPanel(float w, float h, float t, float panelX, float flockX) {
+    goldenSky(w, h, 200);
+    drawCrowFlock(panelX, flockX, t, 500);
+    drawHillLayerRange(0, w, 190, 30, 280, C(0.40f, 0.30f, 0.40f), C(0.30f, 0.22f, 0.32f), 100);
+    drawHouse(120, 128, 190, 120, C(0.70f, 0.56f, 0.48f), C(0.40f, 0.26f, 0.26f), false);             // Hana's home: dark, nobody in
+    drawHouse(w - 20, 128, 140, 100, C(0.62f, 0.52f, 0.52f), C(0.32f, 0.28f, 0.38f), true);
+    drawGradientRect(0, 0, w, 130, C(0.34f, 0.26f, 0.28f), C(0.58f, 0.45f, 0.40f));
+    drawRect(50, 120, 150, 14, C(0.60f, 0.54f, 0.50f));                                               // doorstep
+    float lampOn = smoothstep01((t - 5.0f) / 1.5f);
+    drawLamp(w - 70, 126, 1.7f, lampOn > 0.5f);
+    if (lampOn > 0.01f) drawGlow(w - 70, 126 + 125, 150, rgba(1.0f, 0.8f, 0.45f, 0.4f * lampOn), 16);
+    drawRect(54, 120, 80, 32, C(0.62f, 0.56f, 0.52f));                                                // step block she sits on
+    PersonStyle hana = makeHana(); PersonPose p = makePose(1, t); p.sit = 1; p.armsFwd = 0.2f;
+    drawPerson(86, 152 - 19.0f * 1.7f, 1.7f, hana, p);
+    // the stray cat joins her
+    float cu = clamp01((t - 8.0f) / 3.0f), cx = lerp(w + 30, 190.0f, cu);
+    bool walking = t > 8.0f && t < 11.0f;
+    drawCat(cx, 100, 1.9f, walking ? -1.0f : -1.0f, (w + 30 - cx) * 0.22f / 1.9f, walking ? 1.0f : 0.0f, t, !walking);
+}
+
+static void phoneUI(float x, float y, float t) {                                                      // the phone Kenji is looking at
+    float pop = smoothstep01((t - 3.5f) / 0.6f);
+    if (pop < 0.01f) return;
+    glPushMatrix(); glTranslatef(x, y, 0); glScalef(pop, pop, 1);
+    drawRect(-4, -4, 94, 158, C(0.06f, 0.06f, 0.08f)); drawRect(0, 0, 86, 150, C(0.93f, 0.96f, 1.0f));
+    bool calling = t > 10.5f;
+    if (!calling) {
+        drawText(8, 132, "Missed calls", C(0.15f, 0.15f, 0.2f));
+        for (int i = 0; i < 3; ++i) {
+            float ry = 100 - i * 34.0f;
+            drawCircle(16, ry + 8, 8, C(0.9f, 0.2f, 0.2f), 14); drawLine(12, ry + 12, 20, ry + 4, C(1, 1, 1), 1.6f);
+            drawText(30, ry + 3, "Home", C(0.15f, 0.15f, 0.2f));
+            drawRect(30, ry - 8, 40, 3, C(0.75f, 0.78f, 0.85f));
+        }
+        drawCircle(70, 20, 10, C(0.9f, 0.2f, 0.2f), 14); drawText(66, 16, "7", C(1, 1, 1));
+    } else {
+        float pulse = std::fmod(t * 1.2f, 1.0f);
+        drawCircleOutline(43, 70, 16 + pulse * 22, rgba(0.2f, 0.75f, 0.35f, 1.0f - pulse), 2.5f);
+        drawCircle(43, 70, 16, C(0.2f, 0.75f, 0.35f), 20); drawText(24, 28, "Calling...", C(0.15f, 0.15f, 0.2f));
+        drawText(34, 118, "Home", C(0.15f, 0.15f, 0.2f), true);
+    }
+    glPopMatrix();
+}
+
+void drawKenjiTrainPanel(float w, float h, float t, float panelX, float flockX) {
+    drawGradientRect(0, 0, w, h, C(0.24f, 0.30f, 0.34f), C(0.40f, 0.46f, 0.50f));
+    drawRect(0, h - 40, w, 40, C(0.55f, 0.58f, 0.6f)); drawGlow(w / 2, h - 24, 120, rgba(1.0f, 0.9f, 0.7f, 0.35f), 12);
+    const float wx = 40, wy = 250, ww = w - 80, wh = 270;
+    panelClipBegin(wx, wy, ww, wh);                                                                    // the world flying past the window
+    goldenSky(w, h, 330);
+    drawCrowFlock(panelX, flockX, t, 440);
+    float o1 = std::fmod(t * 40.0f, 300.0f), o2 = std::fmod(t * 110.0f, 300.0f);
+    for (int k = -1; k < 3; ++k) {
+        drawHillLayerRange(k * 300.0f - o1 - 20, k * 300.0f - o1 + 320, 300, 20, 300, C(0.42f, 0.30f, 0.40f), C(0.34f, 0.24f, 0.34f), wy);
+        float px = k * 300.0f - o2 + 150;
+        drawRect(px, wy, 6, 150, C(0.10f, 0.08f, 0.1f)); drawLine(px - 24, wy + 140, px + 30, wy + 140, C(0.10f, 0.08f, 0.1f), 2.5f);
+    }
+    drawGradientRect(wx, wy, ww, 70, C(0.20f, 0.16f, 0.22f), C(0.28f, 0.2f, 0.28f));
+    panelClipEnd();
+    drawRectOutline(wx, wy, ww, wh, C(0.10f, 0.11f, 0.13f), 10.0f); drawLine(wx + ww / 2, wy, wx + ww / 2, wy + wh, C(0.10f, 0.11f, 0.13f), 6.0f);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);                                                                 // gold light on the seat
+    glBegin(GL_QUADS);
+        glColor4f(1.0f, 0.65f, 0.3f, 0.20f); glVertex2f(wx, wy); glVertex2f(wx + ww, wy);
+        glColor4f(1.0f, 0.65f, 0.3f, 0.0f);  glVertex2f(wx + ww * 0.7f, 60); glVertex2f(wx - 20, 60);
+    glEnd();
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    drawRect(0, 0, w, 56, C(0.12f, 0.12f, 0.15f));                                                    // floor
+    drawRect(0, 56, w, 46, C(0.20f, 0.26f, 0.46f)); drawRect(0, 100, w, 6, C(0.30f, 0.36f, 0.58f));    // bench
+    for (int i = 0; i < 3; ++i) {                                                                      // hanging straps swaying with the train
+        float sx = 90 + i * 120.0f, sw = std::sin(t * 2.2f + i) * 3.0f;
+        drawLine(sx, h - 40, sx + sw, h - 100, C(0.3f, 0.3f, 0.33f), 1.5f); drawCircleOutline(sx + sw, h - 112, 12, C(0.85f, 0.85f, 0.88f), 2.5f);
+    }
+    PersonStyle k = makeKenji(); k.hunch = 18; k.prop = PROP_NONE;
+    PersonPose p = makePose(1, t); p.sit = 1; p.armsFwd = 0.55f; p.armUp = (t > 11.0f) ? 1.0f : 0.0f;    // finally calls home
+    p.time = t + std::sin(t * 7.0f) * 0.05f;
+    drawPerson(110, 100 - 19.0f * 1.7f, 1.7f, k, p);
+    phoneUI(w - 112, 120, t);
+}

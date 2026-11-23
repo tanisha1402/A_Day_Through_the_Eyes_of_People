@@ -157,4 +157,12 @@ void glutBitmapString(void*, const unsigned char* s) {
     for (; *s; ++s) { if (*s != ' ') { Vtx a = {x, rasterY, curCol[0], curCol[1], curCol[2], 0.55f}, b = a, c = a, d = a; b.x += 6 * sc; c.x += 6 * sc; c.y += 9 * sc; d.y += 9 * sc; fillTri(a, b, c); fillTri(a, c, d); } x += 9 * sc; }
 }
 int glutBitmapLength(void*, const unsigned char* s) { int n = 0; for (; *s; ++s) n += 9; return n; }
+void glutStrokeString(void*, const unsigned char* s) {      // like freeGLUT: advances the current matrix after each character
+    notInBegin("glutStrokeString"); ++gMock.textCalls;
+    for (; *s; ++s) {
+        if (gRasterOn && *s != ' ') { Vtx a = project(8, 0, curCol), b = project(78, 0, curCol), c = project(78, 90, curCol), d = project(8, 90, curCol); a.a = b.a = c.a = d.a = 0.7f; fillTri(a, b, c); fillTri(a, c, d); }
+        mv.e += mv.a * 104.76f; mv.f += mv.b * 104.76f;
+    }
+}
+float glutStrokeLength(void*, const unsigned char* s) { float n = 0; for (; *s; ++s) n += 104.76f; return n; }
 }

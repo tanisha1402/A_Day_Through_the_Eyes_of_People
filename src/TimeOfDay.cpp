@@ -1,6 +1,7 @@
 #include "TimeOfDay.h"
 
 SkyState gSky;
+float    gMoonScale = 1.0f;
 
 // Keyframes at the hour of each chapter (plus 28.5 = 4:30 AM again for the loop).
 static const int N = 11;

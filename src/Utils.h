@@ -88,6 +88,9 @@ void drawVignette(float strength);          // darkened screen edges
 void drawLetterbox();                       // black cinematic bars
 void drawFade(Color c, float alpha);        // full-screen colour overlay (scene fades)
 void drawText(float x, float y, const char* s, Color c, bool large = false);
+// Scalable outline text (GLUT stroke font): a character is about 119 * scale units tall.
+void  drawTextStroke(float x, float y, const char* s, Color c, float scale, float lineWidth = 2.0f);
+float textStrokeWidth(const char* s, float scale);
 
 // Clip drawing to a logical rectangle (glScissor). Used by split-screen panels.
 void beginClip(float x, float y, float w, float h);

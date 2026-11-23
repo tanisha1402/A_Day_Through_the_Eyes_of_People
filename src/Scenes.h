@@ -7,5 +7,6 @@ void scenesDraw();
 void scenesNext();                // jump to the next implemented chapter
 void scenesPrev();
 void scenesGoto(int index, float time);   // used by tests/tools
+float sceneHourAt(int index, float time);   // story hour at a moment of a chapter
 int   sceneIndex();
 float sceneTime();

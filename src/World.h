@@ -35,14 +35,22 @@ struct TownState {
     bool  lantern;           // Ren's boat lantern
     float sunlight;          // 0..1 sunlight entering Aoi's room
     bool  grannyLight;       // light in Granny Sato's farmhouse window
+    float wet;               // 0..1 wet ground after the rain
+    float windowOpen;        // 0..1 Aoi's window swings open
+    float hanaHome;          // 0..1 lit doorway of Hana's house
+    bool  gateLight;         // lantern at Granny's gate
+    bool  festival;          // lantern strings and food stalls
     TownState() : time(0), mist(0), arms(0), signalOn(false), trainOn(false), trainHeadX(0),
-                  hutCups(1), boatX(2250), lantern(false), sunlight(0), grannyLight(false) {}
+                  hutCups(1), boatX(2250), lantern(false), sunlight(0), grannyLight(false),
+                  wet(0), windowOpen(0), hanaHome(0), gateLight(false), festival(false) {}
 };
 
 void  drawSky(float time);                     // screen-space: gradient, stars, sun, moon
 void  drawFarLayers(float time);               // clouds, mountains, hills (parallax)
 void  drawTownBack(const TownState& ts);       // everything behind the characters
 void  drawTownFront(const TownState& ts);      // crossing gates, light mist: in front of the characters
+void  drawRainbow(float alpha);                // seven translucent bands, parallax layer
+float puddleDepth(float x);                    // 1 where there is a puddle at x (for ripples under the cat), else 0
 float boatBobY(float time);                    // vertical bob of the boat (so Ren can ride it)
 float boatDeckY();                             // y of the boat deck at rest
 void  drawBoatFront(const TownState& ts);      // boat rim, drawn after the rider so he stands inside

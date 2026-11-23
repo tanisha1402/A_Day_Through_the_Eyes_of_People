@@ -139,11 +139,11 @@ void drawGlow(float cx, float cy, float radius, Color c, int layers) {
     // big glows need more layers, otherwise the rings become visible (8-bit colour banding)
     int n = layers;
     if (n < (int)(radius / 5.0f)) n = (int)(radius / 5.0f);
-    if (n > 56) n = 56;
+    if (n > 36) n = 36;
     layers = n;
     for (int i = layers; i >= 1; --i) {
         float t = (float)i / layers;
-        drawCircle(cx, cy, radius * t, withAlpha(c, c.a / layers), 32);
+        drawCircle(cx, cy, radius * t, withAlpha(c, c.a / layers), 20);   // 20 sides is enough for a soft, faint disc
     }
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);   // restore normal blending
 }
@@ -181,6 +181,17 @@ void drawText(float x, float y, const char* s, Color c, bool large) {
     glutBitmapString(large ? GLUT_BITMAP_HELVETICA_18 : GLUT_BITMAP_HELVETICA_12,
                      (const unsigned char*)s);
 }
+
+void drawTextStroke(float x, float y, const char* s, Color c, float scale, float lineWidth) {
+    glPushMatrix();                                  // the stroke font moves the matrix as it draws
+    glTranslatef(x, y, 0);
+    glScalef(scale, scale, 1);
+    setColor(c);
+    glLineWidth(lineWidth);
+    glutStrokeString(GLUT_STROKE_ROMAN, (const unsigned char*)s);
+    glPopMatrix();
+}
+float textStrokeWidth(const char* s, float scale) { return glutStrokeLength(GLUT_STROKE_ROMAN, (const unsigned char*)s) * scale; }
 
 void beginClip(float x, float y, float w, float h) {
     ScissorRect r = logicalToScissor(x, y, w, h, gViewport);   // scissor works in window pixels

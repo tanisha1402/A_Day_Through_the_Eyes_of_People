@@ -101,8 +101,13 @@ Acceptance: panels render independently with no bleeding; cloud visibly crosses 
 Depends on: Phase 3.
 
 ### Phase 5: Scenes 7-10 and story completion
-Tasks: rainbow, puddles, cat journey, sunset and crows, festival, lanterns, fireworks, Aoi and Hana meeting, final pan and moon, loop.
-Acceptance: ten scenes play in order, each about 15 s, loop to Scene 1 without a visible jump.
+- [x] Scene 7 After the Rain: rainbow (parallax arc bands), wet ground, puddles with ripples under the cat, camera follows the cat up the hill, Aoi walks to her window and opens it (sashes swing, curtains lift, light floods in)
+- [x] Scene 8 Going Home: three golden-hour panels (Ren returns to the empty hut and the lamp comes on, Hana waits on the doorstep and the cat joins her, Kenji on the train looks at his missed calls and calls home); one crow flock flies across all panel borders
+- [x] Scene 9 The Festival: lantern strings, three food stalls, crowd, rising moon, scripted particle fireworks with trails and sky flash, Aoi and Hana meet, wave, and watch together with the cat
+- [x] Scene 10 Same Moon: Ren pours a second cup, Hana's mother comes home and the doorway lights, Kenji reaches Granny's gate (lanterns and farmhouse light), camera rises to a growing moon, closing line, fade out and loop
+- [x] Fireworks module (capped rockets/sparks), stroke-font titles, loop from chapter 10 back to chapter 1 through the fade
+- [ ] User builds and watches the whole film on Windows (one full loop) and confirms visuals, timing, FPS
+Acceptance: ten scenes play in order, about 15 s each, loop to Scene 1 without a visible jump.
 Depends on: Phase 4.
 
 ### Phase 6: Interaction and integration

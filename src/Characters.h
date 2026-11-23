@@ -39,6 +39,7 @@ PersonStyle makeHana();      // schoolgirl
 PersonStyle makeKenji();     // office worker
 PersonStyle makeGranny();    // Granny Sato
 PersonStyle makeNeighbor();  // woman at the crossing
+PersonStyle makeMother();    // Hana's mother, back from the night shift
 
 // (x, y) = point between the feet on the ground. scale 1.0 is about 118 units tall.
 void drawPerson(float x, float y, float scale, const PersonStyle& st, const PersonPose& pose);

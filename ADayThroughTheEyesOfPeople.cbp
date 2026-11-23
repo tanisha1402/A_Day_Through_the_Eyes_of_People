@@ -55,6 +55,8 @@
 		<Unit filename="src/World.cpp" />
 		<Unit filename="src/Scenes.h" />
 		<Unit filename="src/Particles.h" />
+		<Unit filename="src/Fireworks.h" />
+		<Unit filename="src/Fireworks.cpp" />
 		<Unit filename="src/Particles.cpp" />
 		<Unit filename="src/Viewports.h" />
 		<Unit filename="src/Viewports.cpp" />

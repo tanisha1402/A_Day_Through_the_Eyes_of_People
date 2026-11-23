@@ -21,4 +21,9 @@ void drawHanaStreetPanel(float w, float h, float t, float flash);
 void drawRenHutPanel(float w, float h, float t, float flash);
 void drawKenjiRunPanel(float w, float h, float t, float flash);
 
+// Scene 8 - Going Home (three columns, golden hour). flockX is the crows' screen-space x, shared by all panels.
+void drawRenReturnPanel(float w, float h, float t, float panelX, float flockX);
+void drawHanaWaitPanel(float w, float h, float t, float panelX, float flockX);
+void drawKenjiTrainPanel(float w, float h, float t, float panelX, float flockX);
+
 void drawWallClock(float cx, float cy, float r, float hour, float seconds, Color face, Color rim, Color ink);

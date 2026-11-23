@@ -5,7 +5,9 @@
 #include <GL/freeglut.h>
 #include <cmath>
 
-static Color T(Color c) { return tint(c); }                 // lit by the current sky
+static Color T(Color c) { return tint(c); }
+void drawPuddles(const TownState& ts);
+void drawFestival(const TownState& ts);                 // lit by the current sky
 static bool  lit(int id) { return windowLit(id, gSky.hour); }
 static float night() { return gSky.darkness; }
 
@@ -24,10 +26,12 @@ void drawSky(float time) {
         drawCircle(gSky.sunX, gSky.sunY, 40, rgb(1.0f, 0.96f, 0.80f));
     }
     if (gSky.moonUp) {
-        drawGlow(gSky.moonX, gSky.moonY, 150, rgba(0.62f, 0.74f, 1.0f, 0.55f), 16);
-        drawCircle(gSky.moonX, gSky.moonY, 32, rgb(0.94f, 0.96f, 1.0f));
-        drawCircle(gSky.moonX - 8, gSky.moonY + 6, 6, rgb(0.84f, 0.87f, 0.95f));
-        drawCircle(gSky.moonX + 9, gSky.moonY - 8, 4, rgb(0.84f, 0.87f, 0.95f));
+        float ms = gMoonScale;
+        drawGlow(gSky.moonX, gSky.moonY, 150 * ms, rgba(0.62f, 0.74f, 1.0f, 0.55f), 16);
+        drawCircle(gSky.moonX, gSky.moonY, 32 * ms, rgb(0.94f, 0.96f, 1.0f), 56);
+        drawCircle(gSky.moonX - 8 * ms, gSky.moonY + 6 * ms, 6 * ms, rgb(0.84f, 0.87f, 0.95f));
+        drawCircle(gSky.moonX + 9 * ms, gSky.moonY - 8 * ms, 4 * ms, rgb(0.84f, 0.87f, 0.95f));
+        drawCircle(gSky.moonX + 2 * ms, gSky.moonY + 15 * ms, 3 * ms, rgb(0.86f, 0.89f, 0.96f));
     }
 }
 
@@ -52,7 +56,8 @@ void drawFarLayers(float time) {
 }
 
 // ------------------------------------------------------------- terrain ----
-static void drawTerrain() {
+static void drawTerrain(const TownState& ts) {
+    float dry = 1.0f - 0.22f * ts.wet;                // wet ground is darker and a little bluer
     Color grassTop = T(rgb(0.42f, 0.64f, 0.34f)), soil = T(rgb(0.22f, 0.36f, 0.24f));
     glBegin(GL_QUADS);
         for (float x = -900; x < 6000; x += 20) {
@@ -72,7 +77,7 @@ static void drawTerrain() {
     glEnd();
     // dirt path winding down the hill from the mansion gate
     glBegin(GL_QUADS);
-        Color path = T(rgb(0.80f, 0.68f, 0.50f));
+        Color path = T(darken(rgb(0.80f, 0.68f, 0.50f), dry));
         glColor4f(path.r, path.g, path.b, 1);
         for (float x = 930; x < 1460; x += 20) {
             glVertex2f(x, groundY(x) - 18); glVertex2f(x + 20, groundY(x + 20) - 18);
@@ -80,13 +85,25 @@ static void drawTerrain() {
         }
     glEnd();
     // downtown: sidewalk + road
-    drawRect(2480, -700, 1620, 812, T(rgb(0.24f, 0.25f, 0.30f)));
-    drawRect(2480, 112, 1620, 56, T(rgb(0.66f, 0.66f, 0.68f)));
+    drawRect(2480, -700, 1620, 812, T(darken(rgb(0.24f, 0.25f, 0.30f), dry)));
+    drawRect(2480, 112, 1620, 56, T(darken(rgb(0.66f, 0.66f, 0.68f), dry)));
     drawRect(2480, 108, 1620, 5, T(rgb(0.45f, 0.45f, 0.48f)));
     for (float x = 2490; x < 4100; x += 90) drawRect(x, 40, 48, 5, T(rgb(0.85f, 0.85f, 0.80f)));
     // countryside: dirt road, then rice paddies in front
     drawRect(4100, 112, 1300, 50, T(rgb(0.72f, 0.60f, 0.44f)));
     drawGradientRect(4100, -700, 1300, 812, T(rgb(0.20f, 0.36f, 0.22f)), T(rgb(0.36f, 0.62f, 0.32f)));
+    // soften the end of the asphalt: the town road fades into the country dirt road and paddies
+    Color pTop = T(rgb(0.36f, 0.62f, 0.32f)), pBot = T(rgb(0.20f, 0.36f, 0.22f)), dirt = T(rgb(0.72f, 0.60f, 0.44f));
+    glBegin(GL_QUADS);
+        glColor4f(pBot.r, pBot.g, pBot.b, 0); glVertex2f(4010, -700);
+        glColor4f(pBot.r, pBot.g, pBot.b, 1); glVertex2f(4100, -700);
+        glColor4f(pTop.r, pTop.g, pTop.b, 1); glVertex2f(4100, 112);
+        glColor4f(pTop.r, pTop.g, pTop.b, 0); glVertex2f(4010, 112);
+        glColor4f(dirt.r, dirt.g, dirt.b, 0); glVertex2f(4010, 112);
+        glColor4f(dirt.r, dirt.g, dirt.b, 1); glVertex2f(4100, 112);
+        glColor4f(dirt.r, dirt.g, dirt.b, 1); glVertex2f(4100, 168);
+        glColor4f(dirt.r, dirt.g, dirt.b, 0); glVertex2f(4010, 168);
+    glEnd();
     for (int r = 0; r < 9; ++r) {                                      // paddy rows
         float y = 98 - r * 22.0f;
         drawRect(4100, y, 1300, 9, T(rgb(0.50f + 0.02f * r, 0.78f, 0.38f)));
@@ -101,7 +118,7 @@ static void townTree(float x, float yOffset, float s, float tone) {
 }
 
 // ------------------------------------------------------------- mansion ----
-static void drawAoiRoom(float x, float by, float sunlight, float time) {
+static void drawAoiRoom(float x, float by, float sunlight, float time, float open) {
     const float w = 260, h = 140, rx = x - w / 2, ry = by + 40;
     Color wall = T(rgb(0.92f, 0.89f, 0.85f)), sky = lerpColor(gSky.bottom, rgb(1, 1, 1), 0.3f);
     drawRect(rx, ry, w, h, wall);
@@ -113,6 +130,15 @@ static void drawAoiRoom(float x, float by, float sunlight, float time) {
         drawRect(wx, ry + 52, 52, 66, sky); drawCircle(wx + 26, ry + 118, 26, sky);
         drawRectOutline(wx, ry + 52, 52, 66, T(rgb(0.5f, 0.45f, 0.4f)), 1.5f);
         drawLine(wx + 26, ry + 52, wx + 26, ry + 144, T(rgb(0.5f, 0.45f, 0.4f)), 1.2f);
+    }
+    if (open > 0.01f) {                                                       // the middle window swings open
+        float wx = rx + 30 + 76, sw = 3.0f + 24.0f * (1.0f - open);          // sashes look narrower as they turn inward
+        drawRect(wx, ry + 52, sw, 66, T(rgb(0.93f, 0.93f, 0.95f)));
+        drawRect(wx + 52 - sw, ry + 52, sw, 66, T(rgb(0.93f, 0.93f, 0.95f)));
+        float sway = std::sin(time * 1.7f) * 3.0f * open;                    // curtains lift in the fresh air
+        drawRect(wx - 8 + sway, ry + 44, 9, 82, T(rgb(0.78f, 0.55f, 0.58f)));
+        drawRect(wx + 51 + sway, ry + 44, 9, 82, T(rgb(0.78f, 0.55f, 0.58f)));
+        drawGlow(wx + 26, ry + 90, 90, rgba(1.0f, 0.9f, 0.62f, 0.55f * open), 14);
     }
     drawRect(rx, ry + 36, 18, h - 36, T(rgb(0.55f, 0.18f, 0.22f)));                               // curtains
     drawRect(rx + w - 18, ry + 36, 18, h - 36, T(rgb(0.55f, 0.18f, 0.22f)));
@@ -156,7 +182,7 @@ static void drawMansion(float x, float by, const TownState& ts) {
     drawCircle(x, by + 300, 9, lit(900) ? rgb(1.0f, 0.85f, 0.5f) : T(rgb(0.9f, 0.9f, 0.92f)));
     drawRectOutline(x - 190, by, 380, 232, line, 1.5f);
     // cutaway room: Aoi's huge, empty, perfect room
-    drawAoiRoom(x, by, ts.sunlight, ts.time);
+    drawAoiRoom(x, by, ts.sunlight, ts.time, ts.windowOpen);
     drawRectOutline(x - 130, by + 40, 260, 140, rgb(0.28f, 0.25f, 0.25f), 3.0f);
     // upper row of small windows + wing windows
     for (int i = 0; i < 5; ++i) drawWindow(x - 150 + i * 62, by + 190, 24, 30, lit(910 + i));
@@ -377,7 +403,7 @@ static void drawFarmhouse(float x, float by, const TownState& ts) {
     drawPolygonOutline(r1, 4, darken(roof, 0.5f), 1.5f);
 }
 
-static void drawFarmGate(float x) {
+static void drawFarmGate(float x, bool lantern) {
     float gy = groundY(x) - 2;
     Color wood = T(rgb(0.36f, 0.24f, 0.16f));
     drawRect(x - 36, gy, 9, 78, wood); drawRect(x + 27, gy, 9, 78, wood);
@@ -386,6 +412,11 @@ static void drawFarmGate(float x) {
     for (int s = -1; s <= 1; s += 2)
         for (int i = 0; i < 5; ++i) drawLine(x + s * (60 + i * 16), gy, x + s * (60 + i * 16), gy + 34, wood, 2.0f);   // fence
     drawLine(x + 52, gy + 28, x + 132, gy + 28, wood, 2.0f); drawLine(x - 52, gy + 28, x - 132, gy + 28, wood, 2.0f);
+    if (lantern) {                                                            // a lantern lit for whoever is coming home
+        drawLine(x + 30, gy + 70, x + 30, gy + 58, wood, 1.5f);
+        drawGlow(x + 30, gy + 50, 80, rgba(1.0f, 0.78f, 0.4f, 0.7f), 14);
+        drawRect(x + 24, gy + 40, 12, 18, rgb(1.0f, 0.86f, 0.5f)); drawRectOutline(x + 24, gy + 40, 12, 18, rgb(0.35f, 0.2f, 0.1f), 1.3f);
+    }
 }
 
 // ----------------------------------------------------------- rails + train ----
@@ -449,6 +480,86 @@ static void drawCrossingSide(float x, float side, const TownState& ts) {
     glPopMatrix();
 }
 
+// ------------------------------------------------------ rain aftermath ----
+static const float kPuddles[] = { 780, 905, 1520, 1650, 1905, 2050, 2610, 2830, 3160, 3500, 3900 };
+static const int   kPuddleCount = 11;
+
+static float puddleY(float x) { return x < 2480 ? groundY(x) - 12.0f : 134.0f; }
+
+float puddleDepth(float x) {
+    for (int i = 0; i < kPuddleCount; ++i) if (std::fabs(x - kPuddles[i]) < 34.0f) return 1.0f;
+    return 0.0f;
+}
+
+void drawPuddles(const TownState& ts) {
+    if (ts.wet <= 0.01f) return;
+    Color sky = lerpColor(gSky.bottom, rgb(1, 1, 1), 0.35f);
+    for (int i = 0; i < kPuddleCount; ++i) {
+        float x = kPuddles[i], y = puddleY(x), rx = 34.0f + (i % 3) * 8.0f;
+        drawEllipse(x, y, rx, 7.0f, withAlpha(darken(sky, 0.82f), 0.85f * ts.wet), 24);
+        drawEllipse(x - 4, y + 1.5f, rx * 0.8f, 4.0f, withAlpha(sky, 0.8f * ts.wet), 24);                     // the sky reflected
+        float glint = 0.5f + 0.5f * std::sin(ts.time * 2.0f + i * 1.7f);
+        drawLine(x - rx * 0.5f, y + 2, x - rx * 0.1f, y + 2, rgba(1, 1, 1, 0.7f * glint * ts.wet), 1.5f);
+    }
+}
+
+void drawRainbow(float alpha) {
+    if (alpha <= 0.01f) return;
+    static const Color band[7] = { rgb(0.95f, 0.25f, 0.25f), rgb(1.0f, 0.55f, 0.15f), rgb(1.0f, 0.9f, 0.25f), rgb(0.35f, 0.8f, 0.35f),
+                                   rgb(0.25f, 0.65f, 0.95f), rgb(0.35f, 0.4f, 0.85f), rgb(0.6f, 0.35f, 0.75f) };
+    cameraBegin(0.6f);
+    for (int i = 0; i < 7; ++i) drawArcBand(1000, -430, 700.0f + i * 13, 713.0f + i * 13, 0.06f, Config::PI - 0.06f, withAlpha(band[i], 0.5f * alpha), 110);
+    drawArcBand(1000, -430, 684, 700, 0.06f, Config::PI - 0.06f, rgba(1, 1, 1, 0.10f * alpha), 110);                // faint inner glow
+    cameraEnd();
+}
+
+// -------------------------------------------------------------- festival ----
+static void drawStall(float x, float by, int kind, float time) {
+    Color cloth = kind == 0 ? T(rgb(0.30f, 0.55f, 0.75f)) : (kind == 1 ? T(rgb(0.85f, 0.45f, 0.25f)) : T(rgb(0.80f, 0.30f, 0.45f)));
+    Color wood = T(rgb(0.50f, 0.34f, 0.22f));
+    drawRect(x - 50, by + 34, 100, 66, darken(cloth, 0.6f));                      // back wall
+    drawRect(x - 52, by, 104, 34, wood); drawRect(x - 52, by + 30, 104, 5, darken(wood, 0.75f));   // counter
+    for (int i = 0; i < 8; ++i) drawRect(x - 58 + i * 14.5f, by + 88, 14.5f, 22, (i % 2) ? T(rgb(0.97f, 0.94f, 0.88f)) : cloth);   // striped awning
+    drawRectOutline(x - 58, by + 88, 116, 22, darken(cloth, 0.4f), 1.3f);
+    drawGlow(x, by + 76, 90, rgba(1.0f, 0.78f, 0.4f, 0.55f), 14);
+    drawCircle(x, by + 76, 5, rgb(1.0f, 0.92f, 0.65f));
+    if (kind == 0) {                                                              // goldfish scooping tub
+        drawEllipse(x, by + 38, 36, 8, rgb(0.35f, 0.65f, 0.85f), 24);
+        for (int i = 0; i < 4; ++i) drawEllipse(x - 18 + i * 12.0f + std::sin(time + i) * 3, by + 38, 4.5f, 2.2f, rgb(1.0f, 0.45f, 0.2f), 10);
+    } else if (kind == 1) {                                                       // grilled snacks with steam
+        for (int i = 0; i < 6; ++i) drawCircle(x - 30 + i * 12.0f, by + 40, 5.5f, rgb(0.72f, 0.45f, 0.22f), 12);
+        for (int k = 0; k < 3; ++k) { float ph = std::fmod(time * 10 + k * 8, 24.0f); drawCircle(x - 14 + k * 14.0f, by + 48 + ph, 3 + ph * 0.1f, rgba(1, 1, 1, 0.4f * (1 - ph / 24)), 10); }
+    } else {                                                                      // candy apples
+        for (int i = 0; i < 5; ++i) { drawLine(x - 28 + i * 14.0f, by + 34, x - 28 + i * 14.0f, by + 46, rgb(0.8f, 0.7f, 0.5f), 1.5f); drawCircle(x - 28 + i * 14.0f, by + 52, 6, rgb(0.85f, 0.12f, 0.15f), 12); }
+    }
+}
+
+void drawFestival(const TownState& ts) {
+    for (int row = 0; row < 2; ++row) {                                           // two strings of paper lanterns
+        float y0 = 392.0f - row * 40, x0 = 2480, x1 = 3230, sag = 36.0f + row * 10;
+        const int N = 15;
+        glLineWidth(1.2f);
+        glBegin(GL_LINES);
+        glColor4f(0.15f, 0.12f, 0.12f, 1);
+        for (int i = 0; i < 30; ++i) {
+            float u0 = i / 30.0f, u1 = (i + 1) / 30.0f;
+            glVertex2f(lerp(x0, x1, u0), y0 - sag * 4 * u0 * (1 - u0)); glVertex2f(lerp(x0, x1, u1), y0 - sag * 4 * u1 * (1 - u1));
+        }
+        glEnd();
+        for (int i = 0; i < N; ++i) {
+            float u = (i + 0.5f + row * 0.3f) / (N + 0.5f), lx = lerp(x0, x1, u) + std::sin(ts.time * 1.2f + i) * 2.0f;
+            float ly = y0 - sag * 4 * u * (1 - u) - 14;
+            Color c = (i % 3 == 0) ? rgb(0.95f, 0.25f, 0.2f) : ((i % 3 == 1) ? rgb(1.0f, 0.6f, 0.2f) : rgb(1.0f, 0.88f, 0.55f));
+            drawGlow(lx, ly, 44, withAlpha(c, 0.55f), 10);
+            drawLine(lx, ly + 11, lx, ly + 14, rgb(0.15f, 0.12f, 0.12f), 1.2f);
+            drawEllipse(lx, ly, 9, 11.5f, c, 18);
+            drawLine(lx - 8, ly + 3, lx + 8, ly + 3, darken(c, 0.7f), 1.0f); drawLine(lx - 8, ly - 3, lx + 8, ly - 3, darken(c, 0.7f), 1.0f);
+            drawRect(lx - 4, ly - 13, 8, 3, rgb(0.2f, 0.15f, 0.12f)); drawRect(lx - 4, ly + 10.5f, 8, 3, rgb(0.2f, 0.15f, 0.12f));
+        }
+    }
+    drawStall(2590, 126, 0, ts.time); drawStall(2730, 126, 1, ts.time); drawStall(2880, 126, 2, ts.time);
+}
+
 // ------------------------------------------------------------ whole town ----
 float boatBobY(float time) { return std::sin(time * 1.1f) * 2.0f; }
 float boatDeckY() { return World::WATER_TOP - 22 + 16.0f; }
@@ -472,7 +583,8 @@ static void drawMistLayer(const TownState& ts, float amount, float yBase, int co
 }
 
 void drawTownBack(const TownState& ts) {
-    drawTerrain();
+    drawTerrain(ts);
+    drawPuddles(ts);
     // back row of small town blocks, dimmer, to give the downtown some depth
     for (int i = 0; i < 9; ++i) {
         float x = 2520 + i * 175.0f; float h = 110 + (i * 37) % 90;
@@ -486,7 +598,12 @@ void drawTownBack(const TownState& ts) {
     drawLamp(1040, groundY(1040) - 4, 1.0f, night() > 0.45f); drawLamp(1300, groundY(1300) - 4, 1.0f, night() > 0.45f);
     // riverside (houses sit behind the bank)
     drawHouse(1560, groundY(1560) + 8, 110, 70, T(rgb(0.86f, 0.78f, 0.62f)), T(rgb(0.40f, 0.32f, 0.30f)), lit(601));
-    drawHouse(2320, groundY(2320) + 8, 120, 76, T(rgb(0.78f, 0.74f, 0.66f)), T(rgb(0.34f, 0.38f, 0.48f)), lit(602));
+    drawHouse(2320, groundY(2320) + 8, 120, 76, T(rgb(0.78f, 0.74f, 0.66f)), T(rgb(0.34f, 0.38f, 0.48f)), lit(602) || ts.hanaHome > 0.5f);
+    if (ts.hanaHome > 0.01f) {                                                  // open doorway spilling warm light
+        float dy = groundY(2320) + 8;
+        drawGlow(2289, dy + 20, 70, rgba(1.0f, 0.82f, 0.5f, 0.6f * ts.hanaHome), 12);
+        drawRect(2277, dy, 24, 38, rgba(1.0f, 0.86f, 0.55f, ts.hanaHome));
+    }
     townTree(1450, 6, 1.0f, 0.3f); townTree(2440, 6, 1.15f, 0.0f);
     drawRiver(ts);
     drawHut(World::HUT_X, groundY(World::HUT_X) + 6, ts);
@@ -497,13 +614,14 @@ void drawTownBack(const TownState& ts) {
     drawOffice(2900, World::BUILDING_Y, 150, 330, 1, rgb(0.72f, 0.76f, 0.84f));
     drawOffice(3085, World::BUILDING_Y, 120, 250, 2, rgb(0.80f, 0.74f, 0.70f));
     drawSchool(World::SCHOOL_X, World::BUILDING_Y);
+    if (ts.festival) drawFestival(ts);
     drawTrack();
     if (ts.trainOn) drawTrain(ts.trainHeadX);
     for (int i = 0; i < 6; ++i) { float lx = 2540 + i * 290.0f; if (lx > 3200 && lx < 3420) continue; drawLamp(lx, 152, 0.9f, night() > 0.45f); }
     // countryside
     townTree(4180, 8, 1.2f, 0.4f); townTree(4350, 8, 0.95f, 0.1f); townTree(5080, 8, 1.3f, 0.5f); townTree(5200, 8, 0.9f, 0.2f);
     drawFarmhouse(World::FARMHOUSE_X, groundY(World::FARMHOUSE_X) + 4, ts);
-    drawFarmGate(World::GATE_X);
+    drawFarmGate(World::GATE_X, ts.gateLight);
     drawMistLayer(ts, ts.mist, World::WATER_TOP + 6, 8, 0);
 }
 

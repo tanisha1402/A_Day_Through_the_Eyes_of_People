@@ -13,7 +13,8 @@ struct SkyState {
     float hour;
 };
 
-extern SkyState gSky;                         // current sky, set once per frame by the scene manager
+extern SkyState gSky;
+extern float    gMoonScale;                   // 1 = normal; Scene 10 lets the moon grow as the camera rises                         // current sky, set once per frame by the scene manager
 
 SkyState skyAtHour(float hour);               // blend between the keyframes
 Color    applyLight(Color c, const SkyState& s);

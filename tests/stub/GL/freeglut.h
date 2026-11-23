@@ -29,6 +29,7 @@ typedef int GLint; typedef int GLsizei; typedef unsigned char GLubyte; typedef d
 #define GLUT_ELAPSED_TIME 700
 #define GLUT_KEY_LEFT 100
 #define GLUT_KEY_RIGHT 102
+#define GLUT_STROKE_ROMAN ((void*)0)
 #define GLUT_BITMAP_HELVETICA_12 ((void*)7)
 #define GLUT_BITMAP_HELVETICA_18 ((void*)8)
 extern "C" {
@@ -48,4 +49,5 @@ void glutDisplayFunc(void(*)()); void glutReshapeFunc(void(*)(int,int)); void gl
 void glutSpecialFunc(void(*)(int,int,int)); void glutTimerFunc(unsigned,void(*)(int),int);
 void glutMainLoop(); void glutSwapBuffers(); void glutPostRedisplay(); int glutGet(GLenum);
 void glutLeaveMainLoop(); void glutBitmapString(void*,const unsigned char*); int glutBitmapLength(void*,const unsigned char*);
+void glutStrokeString(void*,const unsigned char*); float glutStrokeLength(void*,const unsigned char*);
 }
