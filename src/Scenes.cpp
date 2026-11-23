@@ -3,6 +3,9 @@
 #include "Camera.h"
 #include "Characters.h"
 #include "Environment.h"
+#include "Panels.h"
+#include "Particles.h"
+#include "Viewports.h"
 #include "TimeOfDay.h"
 #include "Utils.h"
 #include "World.h"
@@ -16,7 +19,7 @@ static const SceneInfo kScenes[10] = {
     { "4:30 AM",  "Not Everyone's Day Starts at the Same Hour",  4.5f,  6.0f },
     { "6:00 AM",  "Same Sun",                                     6.0f,  7.5f },
     { "7:30 AM",  "Same Crossing",                                7.5f,  9.0f },
-    { "9:00 AM",  "Same Clock",                                   9.0f, 12.0f },
+    { "9:00 AM",  "Same Clock",                                   9.0f, 10.0f },   // clocks are on screen: one hour per chapter keeps their hands readable
     { "12:00 PM", "Same Cloud",                                  12.0f, 15.0f },
     { "3:00 PM",  "Same Rain",                                   15.0f, 16.5f },
     { "4:30 PM",  "After the Rain",                              16.5f, 18.0f },
@@ -25,7 +28,7 @@ static const SceneInfo kScenes[10] = {
     { "11:30 PM", "Same Moon",                                   23.5f, 28.5f },
 };
 static const float SCENE_LENGTH   = 15.0f;   // seconds per chapter
-static const int   ACTIVE_SCENES  = 3;       // chapters implemented so far; the loop wraps here
+static const int   ACTIVE_SCENES  = 6;       // chapters implemented so far; the loop wraps here
 static const float FADE_TIME      = 0.9f;
 
 static int   gIndex = 0;
@@ -33,13 +36,15 @@ static float gTime  = 0.0f;
 
 int   sceneIndex() { return gIndex; }
 float sceneTime()  { return gTime; }
-void  scenesInit() { gIndex = 0; gTime = 0.0f; }
-void  scenesGoto(int index, float time) { gIndex = index % ACTIVE_SCENES; gTime = time; }
-void  scenesNext() { gIndex = (gIndex + 1) % ACTIVE_SCENES; gTime = 0.0f; }
-void  scenesPrev() { gIndex = (gIndex + ACTIVE_SCENES - 1) % ACTIVE_SCENES; gTime = 0.0f; }
+static void enterScene() { panelsReset(gIndex); }       // fresh particles every time a chapter starts
+void  scenesInit() { gIndex = 0; gTime = 0.0f; enterScene(); }
+void  scenesGoto(int index, float time) { gIndex = index % ACTIVE_SCENES; gTime = time; enterScene(); }
+void  scenesNext() { gIndex = (gIndex + 1) % ACTIVE_SCENES; gTime = 0.0f; enterScene(); }
+void  scenesPrev() { gIndex = (gIndex + ACTIVE_SCENES - 1) % ACTIVE_SCENES; gTime = 0.0f; enterScene(); }
 void  scenesUpdate(float dt) {
     gTime += dt;
-    if (gTime >= SCENE_LENGTH) { gTime -= SCENE_LENGTH; gIndex = (gIndex + 1) % ACTIVE_SCENES; }
+    panelsUpdate(dt, gIndex, gTime);
+    if (gTime >= SCENE_LENGTH) { gTime -= SCENE_LENGTH; gIndex = (gIndex + 1) % ACTIVE_SCENES; enterScene(); }
 }
 
 // ------------------------------------------------------ character tracks ----
@@ -175,35 +180,71 @@ static void drawHud() {
     drawText(820, 20, "Space: pause   N/P: chapter   Left/Right: speed   Esc: exit", rgba(1, 1, 1, 0.6f));
 }
 
+// ----------------------------------------------------- split-screen scenes ----
+// Panels appear one after another, each with its own viewport, scissor and projection.
+static float panelReveal(float t, int i) { return smoothstep01((t - (0.3f + 0.6f * i)) / 0.8f); }
+
+static void drawPanelScene(float t) {
+    PanelLayout L;
+    if (gIndex == 3) L = layoutColumns(3);
+    else if (gIndex == 4) L = layoutColumns(2);
+    else L = layoutGrid2x2();
+    float flash = (gIndex == 5) ? lightningLevel(t) : 0.0f;
+    // Scene 5: ONE cloud, one position in screen space, drawn in both panels
+    float cloudX = lerp(150.0f, 1150.0f, t / SCENE_LENGTH), cloudY = 470.0f;
+    for (int i = 0; i < L.count; ++i) {
+        const PanelRect& r = L.r[i];
+        beginPanel(r);
+        if (gIndex == 3) {
+            if (i == 0) drawClassroomPanel(r.w, r.h, t);
+            if (i == 1) drawOfficePanel(r.w, r.h, t);
+            if (i == 2) drawPianoPanel(r.w, r.h, t);
+        } else if (gIndex == 4) {
+            if (i == 0) drawRooftopPanel(r.w, r.h, t, r.x, cloudX, cloudY);
+            if (i == 1) drawFieldPanel(r.w, r.h, t, r.x, cloudX, cloudY);
+        } else {
+            if (i == 0) drawAoiWindowPanel(r.w, r.h, t, flash);
+            if (i == 1) drawHanaStreetPanel(r.w, r.h, t, flash);
+            if (i == 2) drawRenHutPanel(r.w, r.h, t, flash);
+            if (i == 3) drawKenjiRunPanel(r.w, r.h, t, flash);
+        }
+        float cover = 1.0f - panelReveal(t, i);                       // black cover fades away
+        if (cover > 0.001f) drawRect(0, 0, r.w, r.h, rgba(0, 0, 0, cover));
+        endPanel();
+    }
+    drawPanelFrames(L);
+}
+
 // ------------------------------------------------------------------ draw ----
 void scenesDraw() {
     const SceneInfo& info = kScenes[gIndex];
     float hour = lerp(info.hourStart, info.hourEnd, gTime / SCENE_LENGTH);   // story hour glides through the chapter
     gSky = skyAtHour(hour);
 
-    TownState ts; ts.time = gClock.time;
-    switch (gIndex) {
-        case 0: scene1(gTime, ts); break;
-        case 1: scene2(gTime, ts); break;
-        default: scene3(gTime, ts); break;
+    if (gIndex >= 3) {
+        drawPanelScene(gTime);
+    } else {
+        TownState ts; ts.time = gClock.time;
+        switch (gIndex) {
+            case 0: scene1(gTime, ts); break;
+            case 1: scene2(gTime, ts); break;
+            default: scene3(gTime, ts); break;
+        }
+        drawSky(gClock.time);
+        if (gIndex == 0) scene1SkyFx(gTime);
+        drawFarLayers(gClock.time);
+        cameraBegin(1.0f);
+        drawTownBack(ts);
+        switch (gIndex) {
+            case 0: scene1Actors(gTime, ts); break;
+            case 1: scene2Actors(gTime, ts); break;
+            default: scene3Actors(gTime, ts); break;
+        }
+        drawTownFront(ts);
+        cameraEnd();
+        if (gIndex == 1) drawLightRays(gSky.sunX, gSky.sunY, gClock.time, 0.9f, rgb(1.0f, 0.86f, 0.58f));
+        drawVignette(0.4f);
     }
-
-    drawSky(gClock.time);
-    if (gIndex == 0) scene1SkyFx(gTime);
-    drawFarLayers(gClock.time);
-
-    cameraBegin(1.0f);
-    drawTownBack(ts);
-    switch (gIndex) {
-        case 0: scene1Actors(gTime, ts); break;
-        case 1: scene2Actors(gTime, ts); break;
-        default: scene3Actors(gTime, ts); break;
-    }
-    drawTownFront(ts);
-    cameraEnd();
-
-    if (gIndex == 1) drawLightRays(gSky.sunX, gSky.sunY, gClock.time, 0.9f, rgb(1.0f, 0.86f, 0.58f));
-    drawVignette(0.4f);
 
     // fade in at the start / out at the end of every chapter
     float fade = 1.0f - smoothstep01(gTime / FADE_TIME);

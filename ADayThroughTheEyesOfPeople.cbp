@@ -54,6 +54,12 @@
 		<Unit filename="src/World.h" />
 		<Unit filename="src/World.cpp" />
 		<Unit filename="src/Scenes.h" />
+		<Unit filename="src/Particles.h" />
+		<Unit filename="src/Particles.cpp" />
+		<Unit filename="src/Viewports.h" />
+		<Unit filename="src/Viewports.cpp" />
+		<Unit filename="src/Panels.h" />
+		<Unit filename="src/Panels.cpp" />
 		<Unit filename="src/Scenes.cpp" />
 		<Unit filename="src/main.cpp" />
 	</Project>

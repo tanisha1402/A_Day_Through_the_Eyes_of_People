@@ -4,7 +4,7 @@
 static const float D2R = Config::PI / 180.0f;
 
 PersonPose makePose(float facing, float time) {
-    PersonPose p; p.walkPhase = 0; p.walkAmount = 0; p.facing = facing; p.time = time; p.armUp = 0; return p;
+    PersonPose p; p.walkPhase = 0; p.walkAmount = 0; p.facing = facing; p.time = time; p.armUp = 0; p.sit = 0; p.armsFwd = 0; p.propAlways = false; return p;
 }
 
 // ------------------------------------------------------------------ styles ----
@@ -135,7 +135,8 @@ static void drawHeadAndHair(float hy, const PersonStyle& st, const PersonPose& p
 // ------------------------------------------------------------------ person ----
 void drawPerson(float x, float y, float scale, const PersonStyle& st, const PersonPose& pose) {
     const float legLen = 36.0f * st.height, torsoH = 33.0f * st.height;
-    const float hipY = legLen + 1.0f, bw = st.bodyWidth;
+    const bool sit = pose.sit > 0.5f;
+    const float hipY = sit ? legLen * 0.5f + 1.0f : legLen + 1.0f, bw = st.bodyWidth;
     float swing = std::sin(pose.walkPhase);
     float legAng = swing * 30.0f * pose.walkAmount;
     float armAng = -swing * 28.0f * pose.walkAmount;
@@ -157,9 +158,19 @@ void drawPerson(float x, float y, float scale, const PersonStyle& st, const Pers
         if (side == 0) legCol = darken(legCol, 0.82f);
         glPushMatrix();
         glTranslatef(0, hipY, 0);
-        glRotatef(ang, 0, 0, 1);
-        limb(8.5f, legLen, legCol);
-        drawEllipse(3.5f, -legLen + 2.0f, 7.5f, 3.5f, side == 0 ? darken(st.shoe, 0.8f) : st.shoe);
+        if (sit) {                                   // thigh points forward, shin hangs down from the knee
+            float th = legLen * 0.5f * (side == 0 ? 0.92f : 1.0f);
+            glRotatef(90, 0, 0, 1);
+            limb(8.5f, th, legCol);
+            glTranslatef(0, -th, 0);
+            glRotatef(-90, 0, 0, 1);
+            limb(8.0f, legLen * 0.5f, legCol);
+            drawEllipse(3.5f, -legLen * 0.5f + 2.0f, 7.5f, 3.5f, side == 0 ? darken(st.shoe, 0.8f) : st.shoe);
+        } else {
+            glRotatef(ang, 0, 0, 1);
+            limb(8.5f, legLen, legCol);
+            drawEllipse(3.5f, -legLen + 2.0f, 7.5f, 3.5f, side == 0 ? darken(st.shoe, 0.8f) : st.shoe);
+        }
         glPopMatrix();
     }
 
@@ -175,9 +186,9 @@ void drawPerson(float x, float y, float scale, const PersonStyle& st, const Pers
     // back arm
     glPushMatrix();
     glTranslatef(-1, torsoH - 4, 0);
-    glRotatef(-armAng * 0.9f + 4, 0, 0, 1);
+    glRotatef(-armAng * 0.9f + 4 + pose.armsFwd * 50.0f, 0, 0, 1);
     limb(7, 15, darken(st.top, 0.8f));
-    glTranslatef(0, -15, 0); glRotatef(6, 0, 0, 1);
+    glTranslatef(0, -15, 0); glRotatef(6 + pose.armsFwd * 55.0f, 0, 0, 1);
     limb(6, 14, darken(st.skin, 0.9f));
     glPopMatrix();
 
@@ -211,15 +222,15 @@ void drawPerson(float x, float y, float scale, const PersonStyle& st, const Pers
     // front arm (with elbow) and prop in hand
     glPushMatrix();
     glTranslatef(1, torsoH - 4, 0);
-    float upper = armAng * 0.9f - 4 + pose.armUp * 70.0f;
+    float upper = armAng * 0.9f - 4 + pose.armUp * 70.0f + pose.armsFwd * 55.0f;
     glRotatef(upper, 0, 0, 1);
     limb(7.5f, 15, st.top);
     glTranslatef(0, -15, 0);
-    glRotatef(10 + pose.armUp * 85.0f, 0, 0, 1);
+    glRotatef(10 + pose.armUp * 85.0f + pose.armsFwd * 50.0f, 0, 0, 1);
     limb(6, 14, st.skin);
     glTranslatef(0, -14, 0);
     drawCircle(0, 0, 3.6f, st.skin);
-    if (st.prop == PROP_BRIEFCASE && pose.armUp < 0.3f) {
+    if (st.prop == PROP_BRIEFCASE && (pose.armUp < 0.3f || pose.propAlways)) {
         drawRect(-9, -22, 18, 15, rgb(0.28f, 0.2f, 0.14f));
         drawRectOutline(-9, -22, 18, 15, rgb(0.1f, 0.07f, 0.05f), 1.2f);
         drawRect(-3, -8, 6, 3, rgb(0.7f, 0.6f, 0.2f));

@@ -1,30 +1,30 @@
 # Progress
 
-**Current phase:** 3 (World, characters, Scenes 1-3), awaiting user verification on Windows. Phase 1 and 2 checks on the user's machine are also still unconfirmed.
+**Current phase:** 4 (Split-screen Scenes 4-6), awaiting user verification on Windows. Phase 1-3 checks on the user's machine are also still unconfirmed.
 **Date:** 21/11/2026
 
 ## Completed (headless-tested and reviewed in software-rendered previews; not seen in a real window)
-- `TimeOfDay`, `Camera`, `Characters` (6 people + cat), `World` (town, districts, landmarks, train, crossing), `Scenes` (chapter manager, scripts for chapters 1-3, fades, captions, clock), updated `main`.
-- 43 automated checks pass: maths, clock, sky continuity over the full looping day, loop closure 4:30 -> 28:30, camera, chapter timing and wrap, N/P, and about 8,000 simulated frames across 3 window sizes, pause and max speed with no GL misuse.
-- Preview images in `docs/previews/` show what each chapter should look like.
+- `Viewports` (layouts, beginPanel/endPanel with viewport + scissor + projection, nested clip, picking), `Particles` (pool, RainField), `Panels` (nine panel scenes, lightning), scene manager extended to six chapters, characters gained a seated pose and a typing/playing arm pose.
+- 59 automated checks pass, including layout geometry (inside the bars, no overlaps), picking, scissor scaling, pool caps under a 5000/s rain flood, rain draining, lightning range, six-chapter timing and wrap, and about 16,000 simulated frames over 3 window sizes with the GL viewport and scissor verified restored after every frame.
+- Test found and fixed a real bug: an office light colour reached 1.05 (outside 0..1).
+- Preview images for all six chapters in `docs/previews/`.
 
 ## Not verified
-- Build and link with real freeGLUT in Code::Blocks. Real FPS. Real text rendering (previews draw text as boxes).
+- Build and link with real freeGLUT. Real FPS. Real text rendering.
 
 ## Known limitations
-- Up to about 34,000 vertices per frame (immediate mode). Fine on desktop GPUs, but display lists for static scenery are planned for Phase 7 if FPS is low.
-- Caption and HUD use GLUT bitmap fonts (small). A larger drawn title style may be added during polish.
-- Hunched characters (Ren, Granny) have simple torsos; face detail is minimal by design.
-- Chapters 4-10 are not implemented; the loop wraps after chapter 3.
-- Particle pool not built yet (Phase 4).
+- Peak about 34,000 vertices per frame (town chapters); the panel chapters are lighter. Display lists are the Phase 7 option if FPS is low.
+- Granny's seated pose is simple (skirt flat on the mat); acceptable but could be refined in polish.
+- Chapters 7-10 not implemented; the loop wraps after chapter 6.
+- R (rain toggle) is not wired yet: RainField already has an `intensity` value for it (Phase 6).
+- Thought-bubble hit areas will use `panelAt` in Phase 6.
 
 ## Decisions
-- Districts reordered: Hilltop, Riverside, Downtown, Countryside (see PROJECT_PLAN).
-- Aoi's room and Ren's hut are in-world cutaways.
-- Character and train positions are pure functions of chapter time (waypoint tracks), so N/P jumps and loops are always consistent.
-- At the crossing the train passes behind the waiting people and in front of the buildings; Hana waits left of the gates, Kenji and the neighbour right of them.
-- N/P chapter keys were pulled forward from Phase 6 as a testing aid.
-- Story hour glides across each chapter (e.g. 4:30 to 6:00 during chapter 1), so each chapter's end sky equals the next chapter's start sky.
+- Scene 4 story hour is 9:00-10:00 (not 9:00-12:00) so the on-screen clocks stay readable; the sky is nearly identical across 9-12, so there is no visible jump into chapter 5 (12:00).
+- Scene 6 uses a 2x2 grid (four lives), scenes 4 and 5 use columns.
+- Panels use their own backgrounds, not the world camera; panel content is in panel-local coordinates.
+- Scene 5: the cloud has one screen-space position; each panel draws it at (cloudX - panelX), so the viewport clipping alone produces the crossing.
+- Both phones in scene 5 ring at the same moments (4.2-10.0 s): the first visual hint that Kenji and Granny are connected.
 
 ## Next task
-Phase 4, task 1: `Particles` module (pool with caps) and `Viewports` module (panels, glScissor, picking maths), then the three-panel clock scene.
+Phase 5, task 1: Scene 7 (After the Rain): rainbow, wet ground and puddles, the cat's journey up to the mansion, Aoi opening her window.

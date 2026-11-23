@@ -90,7 +90,13 @@ Acceptance: chapters 1-3 play and transition smoothly; characters distinct; walk
 Depends on: Phase 2.
 
 ### Phase 4: Split-screen Scenes 4-6
-Tasks: viewport manager and scissor; three-panel clock scene; shared cloud; rain and lightning; panel palettes (warm, grey, cold blue).
+- [x] Viewports module: 2/3-column and 2x2 layouts, per-panel glViewport + glScissor + local projection, nested panel clip, picking maths (unit-tested)
+- [x] Particles module: capped pool, deterministic random, RainField (drops, ripples) (unit-tested, caps stress-tested)
+- [x] Scene 4 Same Clock: classroom (warm), office (grey), piano room (cold blue); same ticking clock in all three; dust motes and music-note particles (reviewed in preview)
+- [x] Scene 5 Same Cloud: rooftop + field; one cloud drawn in both panels across the border; both phones ring in sync (reviewed in preview)
+- [x] Scene 6 Same Rain: 2x2 grid with Aoi, Hana, Ren (leak into a bucket), Kenji; rain, ripples, shared lightning flash and bolts (reviewed in preview)
+- [x] Characters: seated pose, both-arms-forward pose, briefcase-overhead option
+- [ ] User builds and watches chapters 4-6 on Windows; checks that panels clip cleanly at any window size
 Acceptance: panels render independently with no bleeding; cloud visibly crosses the border; rain and lightning on all panels.
 Depends on: Phase 3.
 

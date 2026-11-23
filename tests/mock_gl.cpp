@@ -63,7 +63,7 @@ static void fillTri(const Vtx& A, const Vtx& B, const Vtx& C) {
     }
 }
 static void thickLine(const Vtx& A, const Vtx& B) {
-    float sc = vpW / 1280.0f, w = std::max(1.0f, lineW * sc) * 0.5f;
+    float sc = fbW / 1280.0f, w = std::max(1.0f, lineW * sc) * 0.5f;
     float dx = B.x - A.x, dy = B.y - A.y, len = std::sqrt(dx * dx + dy * dy);
     if (len < 1e-6f) return;
     float nx = -dy / len * w, ny = dx / len * w;
@@ -73,7 +73,7 @@ static void thickLine(const Vtx& A, const Vtx& B) {
 static void flushPrimitive() {
     size_t n = verts.size();
     switch (beginMode) {
-    case GL_POINTS: { float h = std::max(1.0f, pointS * vpW / 1280.0f) * 0.5f;
+    case GL_POINTS: { float h = std::max(1.0f, pointS * fbW / 1280.0f) * 0.5f;
         for (size_t i = 0; i < n; ++i) { Vtx p = verts[i], a = p, b = p, c = p, d = p; a.x -= h; a.y -= h; b.x += h; b.y -= h; c.x += h; c.y += h; d.x -= h; d.y += h; fillTri(a, b, c); fillTri(a, c, d); } break; }
     case GL_LINES: for (size_t i = 0; i + 1 < n; i += 2) thickLine(verts[i], verts[i + 1]); break;
     case GL_LINE_LOOP: for (size_t i = 0; i < n; ++i) thickLine(verts[i], verts[(i + 1) % n]); break;
@@ -82,6 +82,7 @@ static void flushPrimitive() {
     case GL_QUADS: for (size_t i = 0; i + 3 < n; i += 4) { fillTri(verts[i], verts[i + 1], verts[i + 2]); fillTri(verts[i], verts[i + 2], verts[i + 3]); } break;
     }
 }
+void mockGetViewport(int& x, int& y, int& w, int& h) { x = vpX; y = vpY; w = vpW; h = vpH; }
 void mockWritePPM(const char* path, int k) {
     FILE* f = std::fopen(path, "wb"); if (!f) return;
     int w = fbW / k, h = fbH / k; std::fprintf(f, "P6\n%d %d\n255\n", w, h);
@@ -101,7 +102,7 @@ static void err(const char* msg) {
     ++gMock.errors;
 }
 static void notInBegin(const char* fn) { if (gMock.inBegin) { char b[128]; std::snprintf(b, sizeof b, "%s called inside glBegin/glEnd", fn); err(b); } }
-static void checkColor(float v) { if (!std::isfinite(v) || v < -0.001f || v > 1.001f) err("colour component out of 0..1"); }
+static void checkColor(float v) { if (!std::isfinite(v) || v < -0.001f || v > 1.001f) { char b[96]; std::snprintf(b, sizeof b, "colour component %.4f out of 0..1", v); err(b); } }
 
 void mockFrameCheck(const char* where) {
     char b[160];
@@ -152,7 +153,7 @@ void glutPostRedisplay() {} int glutGet(GLenum) { return 0; } void glutLeaveMain
 void glutBitmapString(void*, const unsigned char* s) {
     notInBegin("glutBitmapString"); ++gMock.textCalls;
     if (!gRasterOn) return;                      // crude text: one small box per character, to show placement
-    float sc = vpW / 1280.0f, x = rasterX;
+    float sc = fbW / 1280.0f, x = rasterX;
     for (; *s; ++s) { if (*s != ' ') { Vtx a = {x, rasterY, curCol[0], curCol[1], curCol[2], 0.55f}, b = a, c = a, d = a; b.x += 6 * sc; c.x += 6 * sc; c.y += 9 * sc; d.y += 9 * sc; fillTri(a, b, c); fillTri(a, c, d); } x += 9 * sc; }
 }
 int glutBitmapLength(void*, const unsigned char* s) { int n = 0; for (; *s; ++s) n += 9; return n; }

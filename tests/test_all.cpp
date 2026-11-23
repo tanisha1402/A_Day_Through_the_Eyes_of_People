@@ -6,9 +6,13 @@
 #include "../src/TimeOfDay.h"
 #include "../src/Camera.h"
 #include "../src/Scenes.h"
+#include "../src/Viewports.h"
+#include "../src/Particles.h"
+#include "../src/Panels.h"
 #include "mock_gl.h"
 #include <cstdio>
 #include <cmath>
+#include <algorithm>
 
 static int gFail = 0, gPass = 0;
 #define CHECK(cond, name) do { if (cond) { ++gPass; } else { ++gFail; std::printf("FAIL: %s\n", name); } } while (0)
@@ -129,10 +133,68 @@ static void testCameraAndScenes() {
     CHECK(sceneIndex() == 0, "chapter 1 lasts 15 s");
     for (int i = 0; i < 3; ++i) scenesUpdate(1.0f / 60.0f);
     CHECK(sceneIndex() == 1 && sceneTime() < 0.1f, "chapter 2 starts after 15 s");
-    for (int i = 0; i < 60 * 30; ++i) scenesUpdate(1.0f / 60.0f); // 30 more seconds: 2 -> 3 -> wrap to 1
-    CHECK(sceneIndex() == 0, "implemented chapters loop back to chapter 1");
+    for (int i = 0; i < 60 * 75; ++i) scenesUpdate(1.0f / 60.0f); // 75 more seconds: chapters 2..6, then wrap
+    CHECK(sceneIndex() == 0, "six implemented chapters (90 s) loop back to chapter 1");
     scenesNext(); CHECK(sceneIndex() == 1 && sceneTime() == 0, "N goes to the next chapter");
-    scenesPrev(); scenesPrev(); CHECK(sceneIndex() == 2, "P wraps backwards");
+    scenesPrev(); scenesPrev(); CHECK(sceneIndex() == 5, "P wraps backwards");
+}
+
+static void testPanelsAndParticles() {
+    // layouts: inside the area between the letterbox bars, no overlaps, gutters between panels
+    PanelLayout L3 = layoutColumns(3), L2 = layoutColumns(2), G = layoutGrid2x2();
+    CHECK(L3.count == 3 && L2.count == 2 && G.count == 4, "layout panel counts");
+    bool inside = true, apart = true;
+    const PanelLayout* all[3] = { &L3, &L2, &G };
+    for (int k = 0; k < 3; ++k) {
+        const PanelLayout& L = *all[k];
+        for (int i = 0; i < L.count; ++i) {
+            const PanelRect& a = L.r[i];
+            if (a.x < -0.01f || a.y < Config::LETTERBOX - 0.01f || a.x + a.w > 1280.01f || a.y + a.h > 720 - Config::LETTERBOX + 0.01f) inside = false;
+            for (int j = i + 1; j < L.count; ++j) {
+                const PanelRect& b = L.r[j];
+                bool sepX = a.x + a.w <= b.x + 0.01f || b.x + b.w <= a.x + 0.01f, sepY = a.y + a.h <= b.y + 0.01f || b.y + b.h <= a.y + 0.01f;
+                if (!(sepX || sepY)) apart = false;
+            }
+        }
+    }
+    CHECK(inside, "panels stay between the letterbox bars");
+    CHECK(apart, "panels never overlap");
+    CHECK(near(L3.r[2].x + L3.r[2].w, 1280.0f, 0.1f) && near(L2.r[1].x + L2.r[1].w, 1280.0f, 0.1f), "columns span the full width");
+    CHECK(near(G.r[0].y, G.r[1].y) && G.r[0].y > G.r[2].y, "grid: top row above bottom row");
+
+    // picking: window click -> logical -> panel -> panel-local (also in a letterboxed window)
+    float px, py;
+    int i0 = panelAt(G, G.r[3].x + 100, G.r[3].y + 40, px, py);
+    CHECK(i0 == 3 && near(px, 100) && near(py, 40), "pick bottom-right panel, local coordinates");
+    CHECK(panelAt(L3, L3.r[0].x + L3.r[0].w + 3, 300, px, py) == -1, "click in the gutter hits no panel");
+    CHECK(panelAt(L3, 500, 20, px, py) == -1 && panelAt(L3, 500, 700, px, py) == -1, "click on a letterbox bar hits no panel");
+    Viewport vp = computeViewport(1000, 1000);
+    float lx, ly; windowToLogical(300, 500, 1000, vp, lx, ly);                 // a point left of centre
+    CHECK(panelAt(L2, lx, ly, px, py) >= 0, "a window click maps into a panel through the letterboxed viewport");
+    ScissorRect sr = logicalToScissor(G.r[1].x, G.r[1].y, G.r[1].w, G.r[1].h, computeViewport(1920, 1080));
+    CHECK(sr.x == (int)std::floor(G.r[1].x * 1.5f) && sr.w >= (int)(G.r[1].w * 1.5f), "panel scissor scales with the window");
+
+    // particles: hard caps, determinism, rain settles and drains
+    ParticlePool pool; poolInit(pool, 10);
+    for (int i = 0; i < 25; ++i) { Particle* q = poolSpawn(pool); if (q) q->life = 1; }
+    CHECK(poolAlive(pool) == 10 && poolSpawn(pool) == 0, "pool never exceeds its capacity");
+    poolUpdate(pool, 2.0f, 0); CHECK(poolAlive(pool) == 0, "particles expire");
+    seedRandom(5); float a1 = rand01(), a2 = rand01(); seedRandom(5); float b1 = rand01(), b2 = rand01();
+    CHECK(a1 == b1 && a2 == b2 && a1 >= 0 && a1 < 1, "random numbers are repeatable and in [0,1)");
+    RainField rf; rainInit(rf, 637, 307, 12, 74, 100, 5000.0f);               // absurdly heavy rain to stress the caps
+    int maxDrops = 0, maxRipples = 0; bool finite = true;
+    for (int f = 0; f < 600; ++f) {
+        rainUpdate(rf, 1.0f / 60.0f);
+        maxDrops = std::max(maxDrops, poolAlive(rf.drops)); maxRipples = std::max(maxRipples, poolAlive(rf.ripples));
+        for (size_t i = 0; i < rf.drops.p.size(); ++i) if (!std::isfinite(rf.drops.p[i].x) || !std::isfinite(rf.drops.p[i].y)) finite = false;
+    }
+    CHECK(maxDrops <= 100 && maxRipples <= 48 && finite, "rain respects its caps even under a flood of spawns");
+    rf.intensity = 0; for (int f = 0; f < 180; ++f) rainUpdate(rf, 1.0f / 60.0f);
+    CHECK(poolAlive(rf.drops) == 0 && poolAlive(rf.ripples) == 0, "rain drains completely when switched off");
+    bool lightningOk = true; float peak = 0, quiet = 0;
+    for (float tt = 0; tt < 15.0f; tt += 0.01f) { float v = lightningLevel(tt); if (v < 0 || v > 1) lightningOk = false; peak = std::max(peak, v); }
+    quiet = lightningLevel(1.0f);
+    CHECK(lightningOk && peak > 0.95f && quiet == 0, "lightning stays in 0..1, flashes, and is dark between flashes");
 }
 
 static void testSceneRendering() {
@@ -140,12 +202,14 @@ static void testSceneRendering() {
     for (int s = 0; s < 3; ++s) {
         utilsOnResize(sizes[s][0], sizes[s][1]);
         clockStart(0); scenesInit();
-        for (int frame = 1; frame <= 60 * 46; ++frame) {          // 46 s: all 3 chapters + the loop wrap
+        for (int frame = 1; frame <= 60 * 92; ++frame) {          // 92 s: all 6 chapters + the loop wrap
             clockTick(frame * 16);
             scenesUpdate(gClock.dt);
             gMock.vertices = 0;
             scenesDraw();
             mockFrameCheck("scene frame");
+            { int vx, vy, vw, vh; mockGetViewport(vx, vy, vw, vh); Viewport v = utilsGetViewport();
+              if (vx != v.x || vy != v.y || vw != v.w || vh != v.h) { ++gMock.errors; std::snprintf(gMock.firstError, sizeof gMock.firstError, "viewport not restored after panels"); } }
         }
     }
     // pause + speed extremes
@@ -168,6 +232,7 @@ int main() {
     testHeadless();
     testTimeOfDay();
     testCameraAndScenes();
+    testPanelsAndParticles();
     testSceneRendering();
     std::printf("\n%d checks passed, %d failed\n", gPass, gFail);
     return gFail ? 1 : 0;

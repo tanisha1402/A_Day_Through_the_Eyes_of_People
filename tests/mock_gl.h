@@ -13,4 +13,5 @@ void mockFrameCheck(const char* where);   // verifies state is clean at the end 
 
 // Optional software rasterizer so frames can be saved as images (tests/render.cpp).
 void mockInitRaster(int width, int height);                  // enables rasterizing
+void mockGetViewport(int& x, int& y, int& w, int& h);      // current GL viewport
 void mockWritePPM(const char* path, int downscale);          // box-filter downscale by k

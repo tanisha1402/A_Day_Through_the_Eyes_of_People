@@ -27,6 +27,9 @@ struct PersonPose {
     float facing;         // +1 faces right, -1 faces left
     float time;           // animation seconds (breathing, blinking)
     float armUp;          // 0..1 raises the front arm (checking a watch, waving)
+    float sit;            // 1 = seated (thigh forward, shin down), 0 = standing
+    float armsFwd;        // 0..1 both arms reach forward (typing, playing piano, writing)
+    bool  propAlways;     // draw the hand prop even while the arm is raised (briefcase over the head)
 };
 PersonPose makePose(float facing, float time);
 
